@@ -3,7 +3,8 @@ OpenColorIO
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Build Status](https://travis-ci.org/imageworks/OpenColorIO.svg?branch=master)](https://travis-ci.org/imageworks/OpenColorIO)
-[![Windows Build Status](https://ci.appveyor.com/api/projects/status/fidyv9jkxeigyd2a/branch/master?svg=true)]()
+[![Windows Build status](https://ci.appveyor.com/api/projects/status/fidyv9jkxeigyd2a?svg=true)](https://ci.appveyor.com/project/scoopxyz/opencolorio-mly52)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2612/badge)](https://bestpractices.coreinfrastructure.org/projects/2612)
 
 Introduction
 ------------
@@ -34,8 +35,8 @@ Web Resources
 -------------
 * Web page: http://opencolorio.org
 * Mail lists:
-    * Developer: ocio-dev@googlegroups.com
-    * User: ocio-users@googlegroups.com
+    * Developer: ocio-dev@lists.aswf.io
+    * User: ocio-user@lists.aswf.io
 * Slack channel: https://opencolorio.slack.com
     * Please request access on the ocio-dev email with the email address you would like to be invited on
 

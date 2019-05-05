@@ -41,9 +41,6 @@ namespace OCIO = OCIO_NAMESPACE;
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/typedesc.h>
-#if (OIIO_VERSION < 10100)
-namespace OIIO = OIIO_NAMESPACE;
-#endif
 
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -55,12 +52,15 @@ namespace OIIO = OIIO_NAMESPACE;
 #else
 #include <GL/glew.h>
 #include <GL/gl.h>
-#include <GL/glext.h>
 #include <GL/glut.h>
 #endif
 
+#include "glsl.h"
 
-bool g_verbose = false;
+bool g_verbose   = false;
+bool g_gpulegacy = false;
+bool g_gpuinfo   = false;
+
 std::string g_filename;
 
 
@@ -68,17 +68,12 @@ GLint g_win = 0;
 int g_winWidth = 0;
 int g_winHeight = 0;
 
-GLuint g_fragShader = 0;
-GLuint g_program = 0;
+OCIO::OpenGLBuilderRcPtr g_oglBuilder;
 
 GLuint g_imageTexID;
 float g_imageAspect;
 
-GLuint g_lut3dTexID;
 const int LUT3D_EDGE_SIZE = 32;
-std::vector<float> g_lut3d;
-std::string g_lut3dcacheid;
-std::string g_shadercacheid;
 
 std::string g_inputColorSpace;
 std::string g_display;
@@ -106,7 +101,11 @@ static void InitImageTexture(const char * filename)
         std::cout << "loading: " << filename << std::endl;
         try
         {
+#if OIIO_VERSION < 10903
             OIIO::ImageInput* f = OIIO::ImageInput::create(filename);
+#else
+            auto f = OIIO::ImageInput::create(filename);
+#endif
             if(!f)
             {
                 std::cerr << "Could not create image input." << std::endl;
@@ -130,14 +129,16 @@ static void InitImageTexture(const char * filename)
             img.resize(texWidth*texHeight*components);
             memset(&img[0], 0, texWidth*texHeight*components*sizeof(float));
 
-            f->read_image(
-#if (OIIO_VERSION >= 10800)
-                OIIO::TypeFloat, 
-#else
-                OIIO::TypeDesc::TypeFloat, 
-#endif
-                &img[0]);
+            const bool ok = f->read_image(OIIO::TypeDesc::FLOAT, &img[0]);
+            if(!ok)
+            {
+                std::cerr << "Error reading \"" << filename << "\" : " << f->geterror() << "\n";
+                exit(1);
+            }
+
+#if OIIO_VERSION < 10903
             OIIO::ImageInput::destroy(f);
+#endif
         }
         catch(...)
         {
@@ -182,9 +183,9 @@ static void InitImageTexture(const char * filename)
         g_imageAspect = (float) texWidth / (float) texHeight;
     }
     
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_imageTexID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, texWidth, texHeight, 0,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, texWidth, texHeight, 0,
         format, GL_FLOAT, &img[0]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -214,27 +215,6 @@ void InitOCIO(const char * filename)
                 << " \t(could not determine from filename, using default)" << std::endl;
         }
     }
-}
-
-static void AllocateLut3D()
-{
-    glGenTextures(1, &g_lut3dTexID);
-    
-    int num3Dentries = 3*LUT3D_EDGE_SIZE*LUT3D_EDGE_SIZE*LUT3D_EDGE_SIZE;
-    g_lut3d.resize(num3Dentries);
-    memset(&g_lut3d[0], 0, sizeof(float)*num3Dentries);
-    
-    glActiveTexture(GL_TEXTURE2);
-    
-    glBindTexture(GL_TEXTURE_3D, g_lut3dTexID);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB16F_ARB,
-                 LUT3D_EDGE_SIZE, LUT3D_EDGE_SIZE, LUT3D_EDGE_SIZE,
-                 0, GL_RGB,GL_FLOAT, &g_lut3d[0]);
 }
 
 /*
@@ -316,8 +296,7 @@ static void Reshape(int width, int height)
 
 static void CleanUp(void)
 {
-    glDeleteShader(g_fragShader);
-    glDeleteProgram(g_program);
+    g_oglBuilder.reset();
     glutDestroyWindow(g_win);
 }
 
@@ -417,66 +396,14 @@ static void SpecialKey(int key, int x, int y)
     glutPostRedisplay();
 }
 
-GLuint
-CompileShaderText(GLenum shaderType, const char *text)
-{
-    GLuint shader;
-    GLint stat;
-    
-    shader = glCreateShader(shaderType);
-    glShaderSource(shader, 1, (const GLchar **) &text, NULL);
-    glCompileShader(shader);
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &stat);
-    
-    if (!stat)
-    {
-        GLchar log[1000];
-        GLsizei len;
-        glGetShaderInfoLog(shader, 1000, &len, log);
-        fprintf(stderr, "Error: problem compiling shader: %s\n", log);
-        return 0;
-    }
-    
-    return shader;
-}
-
-GLuint
-LinkShaders(GLuint fragShader)
-{
-    if (!fragShader) return 0;
-    
-    GLuint program = glCreateProgram();
-    
-    if (fragShader)
-        glAttachShader(program, fragShader);
-    
-    glLinkProgram(program);
-    
-    /* check link */
-    {
-        GLint stat;
-        glGetProgramiv(program, GL_LINK_STATUS, &stat);
-        if (!stat) {
-            GLchar log[1000];
-            GLsizei len;
-            glGetProgramInfoLog(program, 1000, &len, log);
-            fprintf(stderr, "Shader link error:\n%s\n", log);
-            return 0;
-        }
-    }
-    
-    return program;
-}
-
 const char * g_fragShaderText = ""
 "\n"
 "uniform sampler2D tex1;\n"
-"uniform sampler3D tex2;\n"
 "\n"
 "void main()\n"
 "{\n"
 "    vec4 col = texture2D(tex1, gl_TexCoord[0].st);\n"
-"    gl_FragColor = OCIODisplay(col, tex2);\n"
+"    gl_FragColor = OCIODisplay(col);\n"
 "}\n";
 
 
@@ -559,50 +486,37 @@ void UpdateOCIOGLState()
         return;
     }
     
-    // Step 1: Create a GPU Shader Description
-    OCIO::GpuShaderDesc shaderDesc;
-    shaderDesc.setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_0);
-    shaderDesc.setFunctionName("OCIODisplay");
-    shaderDesc.setLut3DEdgeLen(LUT3D_EDGE_SIZE);
+    // Step 1: Create the appropriate GPU shader description
+    OCIO::GpuShaderDescRcPtr shaderDesc 
+        = g_gpulegacy ? OCIO::GpuShaderDesc::CreateLegacyShaderDesc(LUT3D_EDGE_SIZE)
+                      : OCIO::GpuShaderDesc::CreateShaderDesc();
+    shaderDesc->setLanguage(OCIO::GPU_LANGUAGE_GLSL_1_0);
+    shaderDesc->setFunctionName("OCIODisplay");
+    shaderDesc->setResourcePrefix("ocio_");
+
+    // Step 2: Collect the shader program information for a specific processor    
+    processor->extractGpuShaderInfo(shaderDesc);
+
+    // Step 3: Use the helper OpenGL builder
+    g_oglBuilder = OCIO::OpenGLBuilder::Create(shaderDesc);
+    g_oglBuilder->setVerbose(g_gpuinfo);
+
+    // Step 4: Allocate & upload all the LUTs
+    // 
+    // NB: The start index for the texture indices is 1 as one texture
+    //     was already created for the input image.
+    //     
+    g_oglBuilder->allocateAllTextures(1);
     
-    // Step 2: Compute the 3D LUT
-    std::string lut3dCacheID = processor->getGpuLut3DCacheID(shaderDesc);
-    if(lut3dCacheID != g_lut3dcacheid)
-    {
-        //std::cerr << "Computing 3DLut " << g_lut3dcacheid << std::endl;
-        
-        g_lut3dcacheid = lut3dCacheID;
-        processor->getGpuLut3D(&g_lut3d[0], shaderDesc);
-        
-        glBindTexture(GL_TEXTURE_3D, g_lut3dTexID);
-        glTexSubImage3D(GL_TEXTURE_3D, 0,
-                        0, 0, 0, 
-                        LUT3D_EDGE_SIZE, LUT3D_EDGE_SIZE, LUT3D_EDGE_SIZE,
-                        GL_RGB,GL_FLOAT, &g_lut3d[0]);
-    }
+    // Step 5: Build the fragment shader program
+    g_oglBuilder->buildProgram(g_fragShaderText);
     
-    // Step 3: Compute the Shader
-    std::string shaderCacheID = processor->getGpuShaderTextCacheID(shaderDesc);
-    if(g_program == 0 || shaderCacheID != g_shadercacheid)
-    {
-        //std::cerr << "Computing Shader " << g_shadercacheid << std::endl;
-        
-        g_shadercacheid = shaderCacheID;
-        
-        std::ostringstream os;
-        os << processor->getGpuShaderText(shaderDesc) << "\n";
-        os << g_fragShaderText;
-        //std::cerr << os.str() << std::endl;
-        
-        if(g_fragShader) glDeleteShader(g_fragShader);
-        g_fragShader = CompileShaderText(GL_FRAGMENT_SHADER, os.str().c_str());
-        if(g_program) glDeleteProgram(g_program);
-        g_program = LinkShaders(g_fragShader);
-    }
-    
-    glUseProgram(g_program);
-    glUniform1i(glGetUniformLocation(g_program, "tex1"), 1);
-    glUniform1i(glGetUniformLocation(g_program, "tex2"), 2);
+    // Step 6: Enable the fragment shader program, and all needed textures
+    g_oglBuilder->useProgram();
+    // The image texture
+    glUniform1i(glGetUniformLocation(g_oglBuilder->getProgramHandle(), "tex1"), 0);
+    // The LUT textures
+    g_oglBuilder->useAllTextures();
 }
 
 void menuCallback(int /*id*/)
@@ -768,6 +682,14 @@ void parseArguments(int argc, char **argv)
         {
             g_verbose = true;
         }
+        else if(0==strcmp(argv[i], "-gpulegacy"))
+        {
+            g_gpulegacy = true;
+        }
+        else if(0==strcmp(argv[i], "-gpuinfo"))
+        {
+            g_gpuinfo = true;
+        }
         else if(0==strcmp(argv[i], "-h"))
         {
             std::cout << std::endl;
@@ -775,36 +697,16 @@ void parseArguments(int argc, char **argv)
             std::cout << "  ociodisplay [OPTIONS] [image]  where" << std::endl;
             std::cout << std::endl;
             std::cout << "  OPTIONS:" << std::endl;
-            std::cout << "     -h :  displays the help and exit" << std::endl;
-            std::cout << "     -v :  displays the color space information" << std::endl;
-            std::cout << std::endl;
+            std::cout << "     -h         :  displays the help and exit" << std::endl;
+            std::cout << "     -v         :  displays the color space information" << std::endl;
+            std::cout << "     -gpulegacy :  use the legacy (i.e. baked) GPU color processing" << std::endl;
+            std::cout << "     -gpuinfo   :  output the OCIO shader program" << std::endl;
+             std::cout << std::endl;
             exit(0);
         }
         else
         {
             g_filename = argv[i];
-        }
-    }
-
-    if(g_verbose)
-    {
-        std::cout << std::endl;
-        if(!g_filename.empty())
-        {
-            std::cout << "Image:" << std::endl
-                      << "\t" << g_filename << std::endl;
-        }
-        std::cout << std::endl;
-        std::cout << "OIIO: " << std::endl
-                  << "\tversion       = " << OIIO_VERSION_STRING << std::endl;
-        std::cout << std::endl;
-        std::cout << "OCIO: " << std::endl
-                  << "\tversion       = " << OCIO::GetVersion() << std::endl;
-        if(getenv("OCIO"))
-        {
-            std::cout << "\tconfiguration = " << getenv("OCIO") << std::endl;
-            OCIO::ConstConfigRcPtr config = OCIO::GetCurrentConfig();
-            std::cout << "\tsearch_path   = " << config->getSearchPath() << std::endl;
         }
     }
 }
@@ -825,7 +727,7 @@ int main(int argc, char **argv)
     glewInit();
     if (!glewIsSupported("GL_VERSION_2_0"))
     {
-        printf("OpenGL 2.0 not supported\n");
+        std::cerr << "OpenGL 2.0 not supported" << std::endl;
         exit(1);
     }
 #endif
@@ -834,14 +736,51 @@ int main(int argc, char **argv)
     glutKeyboardFunc(Key);
     glutSpecialFunc(SpecialKey);
     glutDisplayFunc(Redisplay);
-    
-    std::cout << USAGE_TEXT << std::endl;
-    
-    // TODO: switch profiles based on shading language
-    std::cout << "GL_SHADING_LANGUAGE_VERSION: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
-    std::cout << std::endl;
 
-    AllocateLut3D();
+    if(g_verbose)
+    {
+        std::cout << std::endl
+                  << "GL Vendor:    " << glGetString(GL_VENDOR) << std::endl
+                  << "GL Renderer:  " << glGetString(GL_RENDERER) << std::endl
+                  << "GL Version:   " << glGetString(GL_VERSION) << std::endl
+                  << "GLSL Version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+
+        if(!g_filename.empty())
+        {
+            std::cout << std::endl;
+            std::cout << "Image: " << g_filename << std::endl;
+        }
+        std::cout << std::endl;
+        std::cout << "OIIO Version: " << OIIO_VERSION_STRING << std::endl;
+        std::cout << "OCIO Version: " << OCIO::GetVersion() << std::endl;
+    }
+
+    OCIO::ConstConfigRcPtr config;
+    try
+    {
+        config = OCIO::GetCurrentConfig();
+    }
+    catch(...)
+    {
+        const char * env = getenv("OCIO");
+        std::cerr << "Error loading the config file: '" << (env ? env : "") << "'";
+        exit(1);
+    }
+
+    if(g_verbose)
+    {
+        const char * env = getenv("OCIO");
+
+        if(env && *env)
+        {
+            std::cout << std::endl;
+            std::cout << "OCIO Configuration: '" << env << "'" << std::endl;
+            std::cout << "OCIO search_path:    " << config->getSearchPath() << std::endl;
+        }
+    }
+    
+    std::cout << std::endl;
+    std::cout << USAGE_TEXT << std::endl;
     
     InitImageTexture(g_filename.c_str());
     try
@@ -858,7 +797,15 @@ int main(int argc, char **argv)
     
     Reshape(1024, 512);
     
-    UpdateOCIOGLState();
+    try
+    {
+        UpdateOCIOGLState();
+    }
+    catch(OCIO::Exception & e)
+    {
+        std::cerr << e.what() << std::endl;
+        exit(1);
+    }
     
     Redisplay();
     

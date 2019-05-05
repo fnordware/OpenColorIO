@@ -1,20 +1,42 @@
-if (OIIO_FOUND)
-    include_directories(
-        ${CMAKE_SOURCE_DIR}/export/
-        ${CMAKE_BINARY_DIR}/export/
-        ${OPENGL_INCLUDE_DIR}
-        ${OIIO_INCLUDES}
-        ${ILMBASE_INCLUDES}
-        ${GLEW_INCLUDES}
-    	${GLUT_INCLUDE_DIR}
-    )
-
-    add_executable(ociodisplay main.cpp)
-
-    # set_target_properties(ociodisplay PROPERTIES INSTALL_RPATH ${OIIO_LIBRARIES} )
-    set_target_properties(ociodisplay PROPERTIES COMPILE_FLAGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
-    target_link_libraries(ociodisplay ${GLEW_LIBRARIES} ${GLUT_LIBRARY} ${OPENGL_LIBRARY} ${OIIO_LIBRARIES})
-    target_link_OCIO(ociodisplay)
-
-    install(TARGETS ociodisplay EXPORT OpenColorIO DESTINATION ${CMAKE_INSTALL_EXEC_PREFIX}/bin)
+find_package(OpenGL REQUIRED)
+if(NOT APPLE)
+	find_package(GLEW REQUIRED)
 endif()
+find_package(GLUT REQUIRED)
+
+set(SOURCES
+	main.cpp
+)
+
+add_executable(ociodisplay ${SOURCES})
+
+if(NOT BUILD_SHARED_LIBS)
+    target_compile_definitions(ociodisplay
+        PRIVATE
+        	OpenColorIO_SKIP_IMPORTS
+    )
+endif()
+
+set_target_properties(ociodisplay PROPERTIES 
+	COMPILE_FLAGS "${PLATFORM_COMPILE_FLAGS}")
+
+target_include_directories(ociodisplay 
+	SYSTEM
+	PRIVATE
+		${OPENGL_INCLUDE_DIR}
+		${GLEW_INCLUDE_DIRS}
+		${GLUT_INCLUDE_DIR}
+)
+target_link_libraries(ociodisplay
+	PRIVATE 
+		apputils
+		oglbuilder
+		OpenColorIO
+		OpenImageIO
+		${OPENGL_LIBRARIES}
+		${GLEW_LIBRARIES}
+		${GLUT_LIBRARIES}
+)
+install(TARGETS ociodisplay
+	RUNTIME DESTINATION bin
+)

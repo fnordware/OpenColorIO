@@ -32,9 +32,6 @@ OCIO_NAMESPACE_USING;
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/typedesc.h>
-#if (OIIO_VERSION < 10100)
-namespace OIIO = OIIO_NAMESPACE;
-#endif
 
 #include "argparse.h"
 
@@ -104,7 +101,7 @@ void Generate(int cubesize, int maxwidth,
         else
         {
             std::ostringstream os;
-            os << "You must specify an ocio configuration ";
+            os << "You must specify an OCIO configuration ";
             os << "(either with --config or $OCIO).";
             throw Exception(os.str().c_str());
         }
@@ -116,7 +113,11 @@ void Generate(int cubesize, int maxwidth,
         processor->apply(imgdesc);
     }
 
+#if OIIO_VERSION < 10903
     OIIO::ImageOutput* f = OIIO::ImageOutput::create(outputfile);
+#else
+    auto f = OIIO::ImageOutput::create(outputfile);
+#endif
     if(!f)
     {
         throw Exception( "Could not create output image.");
@@ -126,9 +127,18 @@ void Generate(int cubesize, int maxwidth,
     
     // TODO: If DPX, force 16-bit output?
     f->open(outputfile, spec);
-    f->write_image(OIIO::TypeDesc::FLOAT, &img[0]);
+    const bool ok = f->write_image(OIIO::TypeDesc::FLOAT, &img[0]);
+    if(!ok)
+    {
+        std::stringstream ss;
+        ss << "Error writing \"" << outputfile << "\" : " << f->geterror() << "\n";
+        throw Exception(ss.str().c_str());
+    }
+
     f->close();
-    delete f;
+#if OIIO_VERSION < 10903
+    OIIO::ImageOutput::destroy(f);
+#endif
 }
 
 
@@ -137,7 +147,11 @@ void Extract(int cubesize, int maxwidth,
              const std::string & outputfile)
 {
     // Read the image
+#if OIIO_VERSION < 10903
     OIIO::ImageInput* f = OIIO::ImageInput::create(inputfile);
+#else
+    auto f = OIIO::ImageInput::create(inputfile);
+#endif
     if(!f)
     {
         throw Exception("Could not create input image.");
@@ -176,14 +190,23 @@ void Extract(int cubesize, int maxwidth,
     
     if(spec.width*spec.height<lut3DNumPixels)
     {
-        throw Exception("Image is not large enough to contain expected 3dlut.");
+        throw Exception("Image is not large enough to contain expected 3D LUT.");
     }
     
     // TODO: confirm no data window?
     std::vector<float> img;
     img.resize(spec.width*spec.height*spec.nchannels, 0);
-    f->read_image(OIIO::TypeDesc::TypeFloat, &img[0]);
-    delete f;
+    const bool ok = f->read_image(OIIO::TypeDesc::FLOAT, &img[0]);
+    if(!ok)
+    {
+        std::stringstream ss;
+        ss << "Error reading \"" << inputfile << "\" : " << f->geterror() << "\n";
+        throw OCIO::Exception(ss.str().c_str());
+    }
+
+#if OIIO_VERSION < 10903
+    OIIO::ImageInput::destroy(f);
+#endif
     
     // Repack into rgb
     // Convert the RGB[...] image to an RGB image, in place.
@@ -202,7 +225,7 @@ void Extract(int cubesize, int maxwidth,
     
     img.resize(lut3DNumPixels*3);
     
-    // Write the output lut
+    // Write the output LUT
     WriteLut3D(outputfile, &img[0], cubesize);
 }
 
@@ -222,13 +245,13 @@ int main (int argc, const char* argv[])
     
     // TODO: Add optional allocation transform instead of colorconvert
     ArgParse ap;
-    ap.options("ociolutimage -- Convert a 3dlut to or from an image\n\n"
+    ap.options("ociolutimage -- Convert a 3D LUT to or from an image\n\n"
                "usage:  ociolutimage [options] <OUTPUTFILE.LUT>\n\n"
                "example:  ociolutimage --generate --output lut.exr\n"
                "example:  ociolutimage --extract --input lut.exr --output output.spi3d\n",
                "<SEPARATOR>", "",
                "--generate", &generate, "Generate a lattice image",
-               "--extract", &extract, "Extract a 3dlut from an input image",
+               "--extract", &extract, "Extract a 3D LUT from an input image",
                "<SEPARATOR>", "",
                "--cubesize %d", &cubesize, "Size of the cube (default: 32)",
                "--maxwidth %d", &maxwidth, "Specify maximum width of the image (default: 2048)",
@@ -282,12 +305,12 @@ int main (int argc, const char* argv[])
         }
         catch(std::exception & e)
         {
-            std::cerr << "Error extracting lut: " << e.what() << std::endl;
+            std::cerr << "Error extracting LUT: " << e.what() << std::endl;
             exit(1);
         }
         catch(...)
         {
-            std::cerr << "Error extracting lut. An unknown error occurred.\n";
+            std::cerr << "Error extracting LUT. An unknown error occurred.\n";
             exit(1);
         }
     }
@@ -305,16 +328,10 @@ int main (int argc, const char* argv[])
 // TODO: These should be exposed from inside OCIO, in appropriate time.
 //
 
-inline int GetLut3DIndex_B(int indexR, int indexG, int indexB,
-                           int sizeR,  int sizeG,  int /*sizeB*/)
+inline int GetLut3DIndex_RedFast(int indexR, int indexG, int indexB,
+                                 int sizeR,  int sizeG,  int /*sizeB*/)
 {
     return 3 * (indexR + sizeR * (indexG + sizeG * indexB));
-}
-
-inline int GetLut3DIndex_R(int indexR, int indexG, int indexB,
-                           int /*sizeR*/,  int sizeG,  int sizeB)
-{
-    return 3 * (indexB + sizeB * (indexG + sizeG * indexR));
 }
 
 void GenerateIdentityLut3D(float* img, int edgeLen, int numChannels,
@@ -323,7 +340,7 @@ void GenerateIdentityLut3D(float* img, int edgeLen, int numChannels,
     if(!img) return;
     if(numChannels < 3)
     {
-        throw Exception("Cannot generate idenitity 3d lut with less than 3 channels.");
+        throw Exception("Cannot generate identity 3D LUT with less than 3 channels.");
     }
     
     float c = 1.0f / ((float)edgeLen - 1.0f);
@@ -383,8 +400,8 @@ void WriteLut3D(const std::string & filename, const float* lutdata, int edgeLen)
         {
             for(int bindex=0; bindex<edgeLen; ++bindex)
             {
-                index = GetLut3DIndex_B(rindex, gindex, bindex,
-                                        edgeLen, edgeLen, edgeLen);
+                index = GetLut3DIndex_RedFast(rindex, gindex, bindex,
+                                              edgeLen, edgeLen, edgeLen);
                 
                 output << rindex << " " << gindex << " " << bindex << " ";
                 output << lutdata[index+0] << " ";
