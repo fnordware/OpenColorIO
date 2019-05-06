@@ -47,8 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PIDefines.h"
 
 #ifdef __PIMac__
-    #include "Types.r"
-    #include "SysTypes.r"
     #include "PIGeneral.r"
     #include "PIUtilities.r"
 #elif defined(__PIWin__)

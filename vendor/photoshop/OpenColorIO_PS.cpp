@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "OpenColorIO_PS_Context.h"
 
+#include "PIUFile.h"
+
 #ifdef __PIWin__
 //#include <Windows.h>
 #include <Shlobj.h>
@@ -139,7 +141,7 @@ static Boolean ReadScriptParams(GPtr globals)
                 }
                 else if(key == ocioKeyConfigFileHandle)
                 {
-                    PIGetAlias(token, (Handle *)&globals->configFileHandle);
+                    PIGetAlias(token, &globals->configFileHandle);
                 }
                 else if(key == ocioKeyAction)
                 {
@@ -210,7 +212,7 @@ static OSErr WriteScriptParams(GPtr globals)
             }
             else if(globals->source == OCIO_SOURCE_CUSTOM)
             {
-                PIPutAlias(token, ocioKeyConfigFileHandle, (Handle)globals->configFileHandle);
+                PIPutAlias(token, ocioKeyConfigFileHandle, globals->configFileHandle);
             }
             
             
@@ -362,7 +364,7 @@ static void InitGlobals(Ptr globalPtr)
             }
             catch(...)
             {
-                gResult = formatCannotRead;
+                gResult = filterBadParameters;
             }
         }
     }
@@ -497,32 +499,14 @@ static void DoStart(GPtr globals)
         
         if(globals->source == OCIO_SOURCE_CUSTOM)
         {
-        #ifdef __PIMac__
             assert(globals->configFileHandle != NULL);
         
-            FSRef fsref;
-            Boolean wasChanged;
-        
-            if(noErr == FSResolveAlias(NULL, globals->configFileHandle, &fsref, &wasChanged))
-            {
-                char file_path[256];
-                file_path[0] = '\0';
-
-                FSRefMakePath(&fsref, (UInt8 *)file_path, 255);
-                
-                dialogParams.config = file_path;
-            }
-            else
-            {
-                dialogParams.source = SOURCE_ENVIRONMENT;
-            }
-        #else
-            assert(globals->configFileHandle != NULL);
-
-            dialogParams.config = PILockHandle(globals->configFileHandle, true);
-
-            PIUnlockHandle(globals->configFileHandle);
-        #endif
+            char file_path[256];
+            file_path[0] = '\0';
+            
+            AliasToFullPath(globals->configFileHandle, file_path, 255);
+            
+            dialogParams.config = file_path;
         }
         else if(globals->source == OCIO_SOURCE_STANDARD)
         {
@@ -566,29 +550,11 @@ static void DoStart(GPtr globals)
             
             if(dialogParams.source == SOURCE_CUSTOM)
             {
-            #ifdef __PIMac__
-                FSRef temp_fsref;
+                char file_path[256];
+                strncpy(file_path, dialogParams.config.c_str(), 256);
+                file_path[255] = '\0';
                 
-                if(noErr == FSPathMakeRef((UInt8 *)dialogParams.config.c_str(), &temp_fsref, NULL) )
-                {
-                    FSNewAlias(NULL, &temp_fsref, &globals->configFileHandle);
-                }
-                else
-                {
-                    globals->source = OCIO_SOURCE_NONE;
-                }
-            #else
-                if(globals->configFileHandle)
-                    PISetHandleSize(globals->configFileHandle, (dialogParams.config.length() + 1) * sizeof(char));
-                else    
-                    globals->configFileHandle = PINewHandle((dialogParams.config.length() + 1) * sizeof(char));
-                    
-                char *path_buf = PILockHandle(globals->configFileHandle, true);
-
-                strcpy(path_buf, dialogParams.config.c_str());
-
-                PIUnlockHandle(globals->configFileHandle);
-            #endif
+                FullPathToAlias(file_path, globals->configFileHandle);
             }
             else if(dialogParams.source == SOURCE_STANDARD)
             {
@@ -640,28 +606,14 @@ static void DoStart(GPtr globals)
         }
         else if(globals->source == OCIO_SOURCE_CUSTOM)
         {
-        #ifdef __PIMac__
             assert(globals->configFileHandle != NULL);
         
-            FSRef fsref;
-            Boolean wasChanged;
-        
-            if(noErr == FSResolveAlias(NULL, globals->configFileHandle, &fsref, &wasChanged))
-            {
-                char file_path[256];
-                file_path[0] = '\0';
-
-                FSRefMakePath(&fsref, (UInt8 *)file_path, 255);
-                
-                path = file_path;
-            }
-        #else
-            assert(globals->configFileHandle != NULL);
-
-            path = PILockHandle(globals->configFileHandle, true);
-
-            PIUnlockHandle(globals->configFileHandle);
-        #endif
+            char file_path[256];
+            file_path[0] = '\0';
+            
+            AliasToFullPath(globals->configFileHandle, file_path, 255);
+            
+            path = file_path;
         }
         else
         {
@@ -850,8 +802,8 @@ DLLExport SPAPI void PluginMain(const int16 selector,
         GPtr globals = NULL;        // actual globals
 
 
-        globalPtr = AllocateGlobals ((allocateGlobalsPointer)result,
-                                        (allocateGlobalsPointer)filterRecord,
+        globalPtr = AllocateGlobals ((void *)result,
+                                        (void *)filterRecord,
                                         filterRecord->handleProcs,
                                         sizeof(Globals),
                                         data,
