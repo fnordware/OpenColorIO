@@ -11,12 +11,14 @@
 #include "OpenColorIO_AE.h"
 #include "OpenColorIO_AE_GL.h"
 
+#include "glsl.h"
+
 #include <OpenColorIO/OpenColorIO.h>
 namespace OCIO = OCIO_NAMESPACE;
 
 
 
-// yeah, this probably could/should go in a seperate file
+// yeah, this probably could/should go in a separate file
 class Path
 {
   public:
@@ -103,8 +105,7 @@ class OpenColorIO_AE_Context
     
     bool _gl_init;
     
-    GLuint _fragShader;
-    GLuint _program;
+    OCIO::OpenGLBuilderRcPtr _oglBuilder;
 
     GLuint _imageTexID;
 
