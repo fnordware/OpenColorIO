@@ -7,6 +7,7 @@
 //#include "PIDefines.h"
 #include "PIFilter.h"
 #include "PIUtilities.h"
+//#include "FileUtilities.h"
 #include "FilterBigDocument.h"
 
 
@@ -46,7 +47,7 @@ typedef struct Globals
     
     OCIO_Source             source;
     Str255                  configName;
-    PIPlatformFileHandle    configFileHandle;
+    Handle                  configFileHandle;       // Not using PIPlatformFileHandle anymore apparently
     OCIO_Action             action;
     Boolean                 invert;
     OCIO_Interp             interpolation;

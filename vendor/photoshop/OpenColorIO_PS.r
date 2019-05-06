@@ -22,8 +22,6 @@
 #include "PIDefines.h"
 
 #ifdef __PIMac__
-    #include "Types.r"
-    #include "SysTypes.r"
     #include "PIGeneral.r"
     #include "PIUtilities.r"
 #elif defined(__PIWin__)
