@@ -1,0 +1,261 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 45;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2A9820C0227FAE050060FDD2 /* eLut.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A9820B9227FAE050060FDD2 /* eLut.h */; };
+		2A9820C1227FAE050060FDD2 /* half.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A9820BA227FAE050060FDD2 /* half.cpp */; };
+		2A9820C2227FAE050060FDD2 /* half.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A9820BB227FAE050060FDD2 /* half.h */; };
+		2A9820C3227FAE050060FDD2 /* halfExport.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A9820BC227FAE050060FDD2 /* halfExport.h */; };
+		2A9820C4227FAE050060FDD2 /* halfFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A9820BD227FAE050060FDD2 /* halfFunction.h */; };
+		2A9820C5227FAE050060FDD2 /* halfLimits.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A9820BE227FAE050060FDD2 /* halfLimits.h */; };
+		2A9820C6227FAE050060FDD2 /* toFloat.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A9820BF227FAE050060FDD2 /* toFloat.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2A9820B9227FAE050060FDD2 /* eLut.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eLut.h; sourceTree = "<group>"; };
+		2A9820BA227FAE050060FDD2 /* half.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = half.cpp; sourceTree = "<group>"; };
+		2A9820BB227FAE050060FDD2 /* half.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = half.h; sourceTree = "<group>"; };
+		2A9820BC227FAE050060FDD2 /* halfExport.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = halfExport.h; sourceTree = "<group>"; };
+		2A9820BD227FAE050060FDD2 /* halfFunction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = halfFunction.h; sourceTree = "<group>"; };
+		2A9820BE227FAE050060FDD2 /* halfLimits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = halfLimits.h; sourceTree = "<group>"; };
+		2A9820BF227FAE050060FDD2 /* toFloat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = toFloat.h; sourceTree = "<group>"; };
+		2ACF559C1477692300991ED5 /* libilmbasehalf.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libilmbasehalf.a; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2ACF559A1477692300991ED5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		034768DDFF38A45A11DB9C8B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2ACF559C1477692300991ED5 /* libilmbasehalf.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0867D691FE84028FC02AAC07 /* yaml */ = {
+			isa = PBXGroup;
+			children = (
+				2A9820B6227FAE050060FDD2 /* ilmbasehalf-2.2.1 */,
+				034768DDFF38A45A11DB9C8B /* Products */,
+			);
+			name = yaml;
+			sourceTree = "<group>";
+		};
+		2A9820B6227FAE050060FDD2 /* ilmbasehalf-2.2.1 */ = {
+			isa = PBXGroup;
+			children = (
+				2A9820B7227FAE050060FDD2 /* ilmbase */,
+			);
+			name = "ilmbasehalf-2.2.1";
+			path = "../../../../../ext/ilmbasehalf-2.2.1";
+			sourceTree = "<group>";
+		};
+		2A9820B7227FAE050060FDD2 /* ilmbase */ = {
+			isa = PBXGroup;
+			children = (
+				2A9820B9227FAE050060FDD2 /* eLut.h */,
+				2A9820BA227FAE050060FDD2 /* half.cpp */,
+				2A9820BB227FAE050060FDD2 /* half.h */,
+				2A9820BC227FAE050060FDD2 /* halfExport.h */,
+				2A9820BD227FAE050060FDD2 /* halfFunction.h */,
+				2A9820BE227FAE050060FDD2 /* halfLimits.h */,
+				2A9820BF227FAE050060FDD2 /* toFloat.h */,
+			);
+			path = ilmbase;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		2ACF55981477692300991ED5 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2A9820C3227FAE050060FDD2 /* halfExport.h in Headers */,
+				2A9820C4227FAE050060FDD2 /* halfFunction.h in Headers */,
+				2A9820C6227FAE050060FDD2 /* toFloat.h in Headers */,
+				2A9820C0227FAE050060FDD2 /* eLut.h in Headers */,
+				2A9820C5227FAE050060FDD2 /* halfLimits.h in Headers */,
+				2A9820C2227FAE050060FDD2 /* half.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		2ACF559B1477692300991ED5 /* ilmbasehalf */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2ACF559F1477692B00991ED5 /* Build configuration list for PBXNativeTarget "ilmbasehalf" */;
+			buildPhases = (
+				2AF56976147991F700F9968C /* Unpack ilmbasehalf */,
+				2ACF55981477692300991ED5 /* Headers */,
+				2ACF55991477692300991ED5 /* Sources */,
+				2ACF559A1477692300991ED5 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ilmbasehalf;
+			productName = yaml;
+			productReference = 2ACF559C1477692300991ED5 /* libilmbasehalf.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0867D690FE84028FC02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 1DEB916408733D950010E9CD /* Build configuration list for PBXProject "ilmbasehalf" */;
+			compatibilityVersion = "Xcode 3.1";
+			developmentRegion = English;
+			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 0867D691FE84028FC02AAC07 /* yaml */;
+			productRefGroup = 034768DDFF38A45A11DB9C8B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2ACF559B1477692300991ED5 /* ilmbasehalf */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		2AF56976147991F700F9968C /* Unpack ilmbasehalf */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../../../../../ext/ilmbasehalf-2.2.1.tar.gz",
+				"$(SRCROOT)/../../../../../ext/ilmbasehalf-2.2.1.patch",
+			);
+			name = "Unpack ilmbasehalf";
+			outputPaths = (
+				"$(SRCROOT)/../../../../../ext/ilmbasehalf-2.2.1",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd $SRCROOT/../../../../../ext\n\nif [ ! -d ilmbasehalf-2.2.1 ]\nthen\n    mkdir ilmbasehalf-2.2.1\n\ttar -xzf ilmbasehalf-2.2.1.tar.gz -C ilmbasehalf-2.2.1\n\tpatch -p0 < ilmbasehalf-2.2.1.patch\n    mv ilmbasehalf-2.2.1 ilmbase\n    mkdir ilmbasehalf-2.2.1\n    mv ilmbase ilmbasehalf-2.2.1/\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2ACF55991477692300991ED5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2A9820C1227FAE050060FDD2 /* half.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB916508733D950010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "../../../../../ext/yaml-cpp/include";
+				ONLY_ACTIVE_ARCH = YES;
+				PREBINDING = NO;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		1DEB916608733D950010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_PREPROCESSOR_DEFINITIONS = NDEBUG;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "../../../../../ext/yaml-cpp/include";
+				PREBINDING = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		2ACF559D1477692300991ED5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/lib;
+				PREBINDING = NO;
+				PRODUCT_NAME = ilmbasehalf;
+			};
+			name = Debug;
+		};
+		2ACF559E1477692300991ED5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/lib;
+				PREBINDING = NO;
+				PRODUCT_NAME = ilmbasehalf;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB916408733D950010E9CD /* Build configuration list for PBXProject "ilmbasehalf" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB916508733D950010E9CD /* Debug */,
+				1DEB916608733D950010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2ACF559F1477692B00991ED5 /* Build configuration list for PBXNativeTarget "ilmbasehalf" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2ACF559D1477692300991ED5 /* Debug */,
+				2ACF559E1477692300991ED5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0867D690FE84028FC02AAC07 /* Project object */;
+}
