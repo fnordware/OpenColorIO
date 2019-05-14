@@ -72,10 +72,11 @@ static NSString *standardPath = @"/Library/Application Support/OpenColorIO";
         [configurationMenu addItemWithTitle:@"$OCIO"];
         
         [[configurationMenu lastItem] setTag:CSOURCE_ENVIRONMENT];
+		
+        std::string env;
+        OpenColorIO_PS_Context::getenvOCIO(env);
         
-        char *envFile = std::getenv("OCIO");
-        
-        if(envFile == NULL || strlen(envFile) == 0)
+        if(!env.empty())
             [[configurationMenu lastItem] setEnabled:FALSE];
         
         
