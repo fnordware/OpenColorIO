@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Windows.h>
 #include <Shlobj.h>
 #include <Icm.h>
-
+#include <assert.h>
 
 #include "lcms2.h"
 

@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PIUFile.h"
 
+#include <assert.h>
+
 #ifdef __PIWin__
 //#include <Windows.h>
 #include <Shlobj.h>
@@ -806,7 +808,7 @@ DLLExport SPAPI void PluginMain(const int16 selector,
                                         (void *)filterRecord,
                                         filterRecord->handleProcs,
                                         sizeof(Globals),
-                                        data,
+                                        (intptr_t *)data,
                                         InitGlobals);
 
         if(globalPtr == NULL)

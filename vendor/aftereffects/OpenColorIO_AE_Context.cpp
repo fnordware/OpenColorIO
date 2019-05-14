@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <sstream>
 
+#include <assert.h>
+
 #include "ocioicc.h"
 
 #include "OpenColorIO_AE_Dialogs.h"

@@ -27,6 +27,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "OpenColorIO_PS_Context.h"
 
+#include <assert.h>
+
+
 int
 FindSpace(const SpaceVec &spaceVec, const std::string &space)
 {
