@@ -104,6 +104,10 @@ class OpenColorIO_AE_Context
     
     bool ProcessWorldGL(PF_EffectWorld *float_world);
 
+	static void getenv(const char *name, std::string &value);
+
+	static void getenvOCIO(std::string &value) { getenv("OCIO", value); }
+
   private:
     std::string _path;
     OCIO_Source _source;

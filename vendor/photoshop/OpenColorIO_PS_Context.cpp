@@ -29,6 +29,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 
+#ifndef __APPLE__
+#include <Windows.h>
+#endif
+
 
 int
 FindSpace(const SpaceVec &spaceVec, const std::string &space)
@@ -286,3 +290,19 @@ OpenColorIO_PS_Context::getDefaultTransform(const std::string &device) const
     return _config->getDefaultView( device.c_str() );
 }
 
+
+void
+OpenColorIO_PS_Context::getenv(const char *name, std::string &value)
+{
+#ifdef __APPLE__
+	char *env = std::getenv(name);
+
+	value = (env != NULL ? env : "");
+#else
+	char env[1024] = { '\0' };
+
+	const DWORD result = GetEnvironmentVariable(name, env, 1023);
+
+	value = (result > 0 ? env : "");
+#endif
+}

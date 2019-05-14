@@ -417,7 +417,7 @@ int PopUpMenu(const MenuVec &menu_items, int selected_index, const void *hwnd)
             }
             else if(label == "$OCIO")
             {
-                char *file = std::getenv("OCIO");
+                char *file = std::getenv("OCIO"); // not using OpenColorIO_AE_Context::getenvOCIO() here so Photoshop can use this file too 
 
                 if(file == NULL)
                     flags |= MF_GRAYED;
