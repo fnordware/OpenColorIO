@@ -427,13 +427,14 @@ static void TrackConfigMenu(HWND hwndDlg, bool readFromControl)
 		}
 		else if(source == CONFIG_ENVIRONMENT)
 		{
-			char *envFile = std::getenv("OCIO");
-
 			g_source = SOURCE_ENVIRONMENT;
+
+			std::string env;
+			OpenColorIO_PS_Context::getenvOCIO(env);
 			
-			if(envFile != NULL)
+			if(!env.empty())
 			{
-				configPath = envFile;
+				configPath = env;
 			}
 		}
 		else if(source == CONFIG_CUSTOM)
@@ -489,13 +490,14 @@ static void TrackConfigMenu(HWND hwndDlg, bool readFromControl)
 	{
 		if(g_source == SOURCE_ENVIRONMENT)
 		{
-			char *envFile = std::getenv("OCIO");
-
 			SELECT_STRING_ITEM(DLOG_Configuration_Menu, "$OCIO");
+
+			std::string env;
+			OpenColorIO_PS_Context::getenvOCIO(env);
 			
-			if(envFile != NULL)
+			if(!env.empty())
 			{
-				configPath = envFile;
+				configPath = env;
 			}
 		}
 		else if(g_source == SOURCE_CUSTOM)
@@ -850,10 +852,11 @@ static BOOL CALLBACK DialogProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARA
 			do{
 				int index = 0;
 				
-				char *envFile = std::getenv("OCIO");
+				std::string env;
+				OpenColorIO_PS_Context::getenvOCIO(env);
 
-				const DWORD envType = (envFile == NULL ? CONFIG_SEPERATOR : CONFIG_ENVIRONMENT);
-				const bool envSelected = (envFile != NULL != NULL && g_source == SOURCE_ENVIRONMENT);
+				const DWORD envType = (!env.empty() ? CONFIG_SEPERATOR : CONFIG_ENVIRONMENT);
+				const bool envSelected = (!env.empty() && g_source == SOURCE_ENVIRONMENT);
 
 				ADD_MENU_ITEM(DLOG_Configuration_Menu, index, "$OCIO", envType, envSelected);
 				index++;

@@ -297,11 +297,12 @@ OpenColorIO_AE_Context::OpenColorIO_AE_Context(const std::string &path, OCIO_Sou
     
     if(_source == OCIO_SOURCE_ENVIRONMENT)
     {
-        char *file = getenv("OCIO");
+		std::string env;
+		getenvOCIO(env);
         
-        if(file)
+        if(!env.empty())
         {
-            _path = file;
+            _path = env;
         }
         else
             throw OCIO::Exception("No $OCIO environment variable.");
@@ -389,11 +390,12 @@ OpenColorIO_AE_Context::OpenColorIO_AE_Context(const ArbitraryData *arb_data, co
     
     if(_source == OCIO_SOURCE_ENVIRONMENT)
     {
-        char *file = getenv("OCIO");
+		std::string env;
+		getenvOCIO(env);
         
-        if(file)
+        if(!env.empty())
         {
-            _path = file;
+            _path = env;
         }
         else
             throw OCIO::Exception("No $OCIO environment variable.");
@@ -1041,4 +1043,20 @@ bool OpenColorIO_AE_Context::ProcessWorldGL(PF_EffectWorld *float_world)
     SetAEContext();
     
     return true;
+}
+
+
+void OpenColorIO_AE_Context::getenv(const char *name, std::string &value)
+{
+#ifdef WIN_ENV
+	char env[32767] = { '\0' };
+
+	const DWORD result = GetEnvironmentVariable(name, env, 32767);
+
+	value = (result > 0 ? env : "");
+#else
+	char *env = std::getenv(name);
+
+	value = (env != NULL ? env : "");
+#endif
 }

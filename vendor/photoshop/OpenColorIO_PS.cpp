@@ -301,11 +301,12 @@ static void InitGlobals(Ptr globalPtr)
     
     
     // set default with environment variable if it's set
-    char *file = std::getenv("OCIO");
+	std::string env;
+	OpenColorIO_PS_Context::getenvOCIO(env);
     
-    if(file)
+    if(!env.empty())
     {
-        std::string path = file;
+        std::string path = env;
         
         if( !path.empty() )
         {
@@ -574,11 +575,12 @@ static void DoStart(GPtr globals)
     {
         if(globals->source == OCIO_SOURCE_ENVIRONMENT)
         {
-            char *envFile = std::getenv("OCIO");
+			std::string env;
+			OpenColorIO_PS_Context::getenvOCIO(env);
             
-            if(envFile != NULL && strlen(envFile) > 0)
+            if(!env.empty())
             {
-                path = envFile;
+                path = env;
             }
         }
         else if(globals->source == OCIO_SOURCE_CUSTOM)
