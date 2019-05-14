@@ -10,6 +10,8 @@
 #include <map>
 #include <cstdlib>
 
+#include <assert.h>
+
 #include "OpenColorIO_PS_Context.h"
 #include "OpenColorIO_PS_Version.h"
 

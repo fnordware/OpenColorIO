@@ -2,6 +2,9 @@
 // Copyright Contributors to the OpenColorIO Project.
 #include "OpenColorIO_PS_Context.h"
 
+#include <assert.h>
+
+
 int
 FindSpace(const SpaceVec &spaceVec, const std::string &space)
 {

@@ -9,7 +9,7 @@
 #include <Windows.h>
 #include <Shlobj.h>
 #include <Icm.h>
-
+#include <assert.h>
 
 #include "lcms2.h"
 
