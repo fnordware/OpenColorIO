@@ -234,6 +234,7 @@ static NSString *standardPath = @"/Library/Application Support/OpenColorIO";
                 const OCIO::Interpolation interp = (interpolation == CINTERP_NEAREST ? OCIO::INTERP_NEAREST :
                                                     interpolation == CINTERP_LINEAR ? OCIO::INTERP_LINEAR :
                                                     interpolation == CINTERP_TETRAHEDRAL ? OCIO::INTERP_TETRAHEDRAL :
+                                                    interpolation == CINTERP_CUBIC ? OCIO::INTERP_CUBIC :
                                                     OCIO::INTERP_BEST);
                 
                 const OCIO::TransformDirection direction = (invert ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);
@@ -332,6 +333,7 @@ static NSString *standardPath = @"/Library/Application Support/OpenColorIO";
                         const OCIO::Interpolation interp = (interpolation == CINTERP_NEAREST ? OCIO::INTERP_NEAREST :
                                                             interpolation == CINTERP_LINEAR ? OCIO::INTERP_LINEAR :
                                                             interpolation == CINTERP_TETRAHEDRAL ? OCIO::INTERP_TETRAHEDRAL :
+                                                            interpolation == CINTERP_CUBIC ? OCIO::INTERP_CUBIC :
                                                             OCIO::INTERP_BEST);
                         
                         const OCIO::TransformDirection direction = (invert ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);
@@ -413,6 +415,7 @@ static NSString *standardPath = @"/Library/Application Support/OpenColorIO";
                     const OCIO::Interpolation interp = (interpolation == CINTERP_NEAREST ? OCIO::INTERP_NEAREST :
                                                         interpolation == CINTERP_LINEAR ? OCIO::INTERP_LINEAR :
                                                         interpolation == CINTERP_TETRAHEDRAL ? OCIO::INTERP_TETRAHEDRAL :
+                                                        interpolation == CINTERP_CUBIC ? OCIO::INTERP_CUBIC :
                                                         OCIO::INTERP_BEST);
                     
                     const OCIO::TransformDirection direction = (invert ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);
@@ -650,18 +653,9 @@ static NSString *standardPath = @"/Library/Application Support/OpenColorIO";
                 [interpolationMenu addItemWithTitle:@"Tetrahedral"];
                 [[interpolationMenu lastItem] setTag:CINTERP_TETRAHEDRAL];
                 
-                const bool canTetrahedral = !context->canInvertLUT();
-                
-                if(!canTetrahedral)
-                {
-                    [interpolationMenu setAutoenablesItems:NO];
-                
-                    [[interpolationMenu lastItem] setEnabled:NO];
-                    
-                    if(interpolation == CINTERP_TETRAHEDRAL)
-                        interpolation = CINTERP_LINEAR;
-                }
-                
+                [interpolationMenu addItemWithTitle:@"Cubic"];
+                [[interpolationMenu lastItem] setTag:CINTERP_CUBIC];
+				
                 [[interpolationMenu menu] addItem:[NSMenuItem separatorItem]];
                 
                 [interpolationMenu addItemWithTitle:@"Best"];

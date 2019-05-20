@@ -290,6 +290,10 @@ resource 'aete' (ResourceID, plugInName " dictionary", purgeable)
                 interpTetrahedral,
                 "Tetrahedral Interpolation",
                 
+                "Cubic",
+                interpCubic,
+                "Cubic Interpolation",
+				
                 "Best",
                 interpBest,
                 "Best Interpolation"

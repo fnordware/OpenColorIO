@@ -53,4 +53,5 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define interpNearest       'tNer'
 #define interpLinear        'tLin'
 #define interpTetrahedral   'tTet'
+#define interpCubic         'tCub'
 #define interpBest          'tBst'

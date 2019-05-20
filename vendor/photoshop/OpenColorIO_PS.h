@@ -57,6 +57,7 @@ enum {
     OCIO_INTERP_NEAREST = 1,
     OCIO_INTERP_LINEAR = 2,
     OCIO_INTERP_TETRAHEDRAL = 3,
+    OCIO_INTERP_CUBIC = 4,
     OCIO_INTERP_BEST = 255
 };
 typedef uint8 OCIO_Interp;

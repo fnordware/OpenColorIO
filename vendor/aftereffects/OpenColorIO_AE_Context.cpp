@@ -661,7 +661,8 @@ void OpenColorIO_AE_Context::setupLUT(bool invert, OCIO_Interp interpolation)
     OCIO::FileTransformRcPtr transform = OCIO::FileTransform::Create();
     
     if(interpolation != OCIO_INTERP_NEAREST && interpolation != OCIO_INTERP_LINEAR &&
-        interpolation != OCIO_INTERP_TETRAHEDRAL && interpolation != OCIO_INTERP_BEST)
+        interpolation != OCIO_INTERP_TETRAHEDRAL && interpolation != OCIO_INTERP_CUBIC &&
+        interpolation != OCIO_INTERP_BEST)
     {
         interpolation = OCIO_INTERP_LINEAR;
     }
