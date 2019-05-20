@@ -815,7 +815,7 @@ void OpenColorIO_AE_Context::InitOCIOGL()
 }
 
 
-const char * g_fragShaderText = ""
+static const char * g_fragShaderText = ""
 "\n"
 "uniform sampler2D tex1;\n"
 "\n"
@@ -904,7 +904,6 @@ void OpenColorIO_AE_Context::UpdateOCIOGLState()
         
         // Step 5: Build the fragment shader program
         _oglBuilder->buildProgram(g_fragShaderText);
-        
         
         SetAEContext();
     }
@@ -1049,9 +1048,9 @@ bool OpenColorIO_AE_Context::ProcessWorldGL(PF_EffectWorld *float_world)
 void OpenColorIO_AE_Context::getenv(const char *name, std::string &value)
 {
 #ifdef WIN_ENV
-	char env[32767] = { '\0' };
+	char env[1024] = { '\0' };
 
-	const DWORD result = GetEnvironmentVariable(name, env, 32767);
+	const DWORD result = GetEnvironmentVariable(name, env, 1023);
 
 	value = (result > 0 ? env : "");
 #else
