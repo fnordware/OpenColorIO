@@ -139,6 +139,7 @@ static Boolean ReadScriptParams(GPtr globals)
                     globals->action = (ostypeStoreValue == interpNearest ? OCIO_INTERP_NEAREST :
                                         ostypeStoreValue == interpLinear ? OCIO_INTERP_LINEAR :
                                         ostypeStoreValue == interpTetrahedral ? OCIO_INTERP_TETRAHEDRAL :
+                                        ostypeStoreValue == interpCubic ? OCIO_INTERP_CUBIC :
                                         OCIO_INTERP_BEST);
                 }
                 else if(key == ocioKeyInputSpace)
@@ -203,6 +204,7 @@ static OSErr WriteScriptParams(GPtr globals)
                 PIPutEnum(token, ocioKeyInterpolation, typeInterpolation, (globals->interpolation == OCIO_INTERP_NEAREST ? interpNearest :
                                                                         globals->interpolation == OCIO_INTERP_LINEAR ? interpLinear :
                                                                         globals->interpolation == OCIO_INTERP_TETRAHEDRAL ? interpTetrahedral :
+                                                                        globals->interpolation == OCIO_INTERP_CUBIC ? interpCubic :
                                                                         interpBest));
                                                                         
             }
@@ -500,6 +502,7 @@ static void DoStart(GPtr globals)
         dialogParams.interpolation = (globals->interpolation == OCIO_INTERP_NEAREST ? INTERPO_NEAREST :
                                         globals->interpolation == OCIO_INTERP_LINEAR ? INTERPO_LINEAR :
                                         globals->interpolation == OCIO_INTERP_TETRAHEDRAL ? INTERPO_TETRAHEDRAL :
+                                        globals->interpolation == OCIO_INTERP_CUBIC ? INTERPO_CUBIC :
                                         INTERPO_BEST);
                                         
         dialogParams.inputSpace = myP2CString(globals->inputSpace);
@@ -548,6 +551,7 @@ static void DoStart(GPtr globals)
             globals->interpolation = (dialogParams.interpolation == INTERPO_NEAREST ? OCIO_INTERP_NEAREST :
                                         dialogParams.interpolation == INTERPO_LINEAR ? OCIO_INTERP_LINEAR :
                                         dialogParams.interpolation == INTERPO_TETRAHEDRAL ? OCIO_INTERP_TETRAHEDRAL :
+                                        dialogParams.interpolation == INTERPO_CUBIC ? OCIO_INTERP_CUBIC :
                                         OCIO_INTERP_BEST);
                                         
             myC2PString(globals->inputSpace, dialogParams.inputSpace.c_str());
@@ -639,6 +643,7 @@ static void DoStart(GPtr globals)
                 const OCIO::Interpolation interpolation = (globals->interpolation == OCIO_INTERP_NEAREST ? OCIO::INTERP_NEAREST :
                                                             globals->interpolation == OCIO_INTERP_LINEAR ? OCIO::INTERP_LINEAR :
                                                             globals->interpolation == OCIO_INTERP_TETRAHEDRAL ? OCIO::INTERP_TETRAHEDRAL :
+                                                            globals->interpolation == OCIO_INTERP_CUBIC ? OCIO::INTERP_CUBIC :
                                                             OCIO::INTERP_BEST);
                                                             
                 const OCIO::TransformDirection direction = (globals->invert ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);

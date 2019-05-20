@@ -426,6 +426,7 @@ static PF_Err DrawEvent(
                     const char *txt =   arb_data->interpolation == OCIO_INTERP_NEAREST ? "Nearest Neighbor" :
                                         arb_data->interpolation == OCIO_INTERP_LINEAR ? "Linear" :
                                         arb_data->interpolation == OCIO_INTERP_TETRAHEDRAL ? "Tetrahedral" :
+                                        arb_data->interpolation == OCIO_INTERP_CUBIC ? "Cubic" :
                                         arb_data->interpolation == OCIO_INTERP_BEST ? "Best" :
                                         "Unknown";
                     
@@ -1014,13 +1015,15 @@ static void DoClickMenus(
                     menu_items.push_back("Nearest Neighbor");
                     menu_items.push_back("Linear");
                     menu_items.push_back("Tetrahedral");
+                    menu_items.push_back("Cubic");
                     menu_items.push_back("(-");
                     menu_items.push_back("Best");
                     
                     selected_item = arb_data->interpolation == OCIO_INTERP_NEAREST ? 0 :
                                     arb_data->interpolation == OCIO_INTERP_LINEAR ? 1 :
                                     arb_data->interpolation == OCIO_INTERP_TETRAHEDRAL ? 2 :
-                                    arb_data->interpolation == OCIO_INTERP_BEST ? 4 :
+                                    arb_data->interpolation == OCIO_INTERP_CUBIC ? 3 :
+                                    arb_data->interpolation == OCIO_INTERP_BEST ? 5 :
                                     -1;
                 }
             }
@@ -1080,6 +1083,7 @@ static void DoClickMenus(
                     {
                         arb_data->interpolation =   result == 0 ? OCIO_INTERP_NEAREST :
                                                     result == 2 ? OCIO_INTERP_TETRAHEDRAL :
+                                                    result == 3 ? OCIO_INTERP_CUBIC :
                                                     result == 4 ? OCIO_INTERP_BEST :
                                                     OCIO_INTERP_LINEAR;
                                                 
