@@ -55,9 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     [menu setAutoenablesItems:FALSE];
     
     
-    NSUInteger i;
-    
-    for(i=0; i < [menu_items count]; i++)
+    for(NSUInteger i=0; i < [menu_items count]; i++)
     {
         if( [[menu_items objectAtIndex:i] isEqualToString:@"(-"] )
         {
@@ -88,7 +86,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
     
     
-    id fakeMouseEvent=[NSEvent mouseEventWithType:NSLeftMouseDown
+    id fakeMouseEvent = [NSEvent mouseEventWithType:NSLeftMouseDown
                         location: [[NSApp keyWindow] convertScreenToBase:[NSEvent mouseLocation]]
                         modifierFlags:0 
                         timestamp:0

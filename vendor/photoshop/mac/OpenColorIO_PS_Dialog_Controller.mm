@@ -521,11 +521,12 @@ static NSString *standardPath = @"/Library/Application Support/OpenColorIO";
     
     if(source == CSOURCE_ENVIRONMENT)
     {
-        char *envFile = std::getenv("OCIO");
-        
-        if(envFile != NULL && strlen(envFile) > 0)
+        std::string env;
+        OpenColorIO_PS_Context::getenvOCIO(env);
+
+        if(!env.empty())
         {
-            configPath = [NSString stringWithUTF8String:envFile];
+            configPath = [NSString stringWithUTF8String:env.c_str()];
         }
     }
     else if(source == CSOURCE_CUSTOM)
