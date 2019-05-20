@@ -552,8 +552,6 @@ static void TrackConfigMenu(HWND hwndDlg, bool readFromControl)
                 const int interpLabel = DLOG_Menu1_Label;
 				const int interpMenu = DLOG_Menu1_Menu;
 
-				const bool canTetrahedral = !g_context->canInvertLUT();
-
 				SET_LABEL_STRING(interpLabel, "Interpolation:");
                 
                 // interpolation menu
@@ -561,11 +559,9 @@ static void TrackConfigMenu(HWND hwndDlg, bool readFromControl)
 
 				ADD_MENU_ITEM(interpMenu, 0, "Nearest Neighbor", INTERPO_NEAREST, (g_interpolation == INTERPO_NEAREST));
 				ADD_MENU_ITEM(interpMenu, 1, "Linear", INTERPO_LINEAR, (g_interpolation == INTERPO_LINEAR));
-
-				if(canTetrahedral)
-					ADD_MENU_ITEM(interpMenu, 2, "Tetrahedral", INTERPO_TETRAHEDRAL, (g_interpolation == INTERPO_TETRAHEDRAL));
-
-				ADD_MENU_ITEM(interpMenu, 3, "Best", INTERPO_BEST, (g_interpolation == INTERPO_BEST));
+				ADD_MENU_ITEM(interpMenu, 2, "Tetrahedral", INTERPO_TETRAHEDRAL, (g_interpolation == INTERPO_TETRAHEDRAL));
+				ADD_MENU_ITEM(interpMenu, 3, "Cubic", INTERPO_CUBIC, (g_interpolation == INTERPO_CUBIC));
+				ADD_MENU_ITEM(interpMenu, 4, "Best", INTERPO_BEST, (g_interpolation == INTERPO_BEST));
                 
 
                 SHOW_ITEM(DLOG_Menu1_Button, FALSE);
@@ -746,6 +742,7 @@ static void DoExport(HWND hwndDlg)
 							const OCIO::Interpolation interp = (g_interpolation == INTERPO_NEAREST ? OCIO::INTERP_NEAREST :
 																g_interpolation == INTERPO_LINEAR ? OCIO::INTERP_LINEAR :
 																g_interpolation == INTERPO_TETRAHEDRAL ? OCIO::INTERP_TETRAHEDRAL :
+								                                g_interpolation == INTERPO_CUBIC ? OCIO::INTERP_CUBIC :
 																OCIO::INTERP_BEST);
 	                        
 							const OCIO::TransformDirection direction = (g_invert ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);
@@ -803,6 +800,7 @@ static void DoExport(HWND hwndDlg)
 						const OCIO::Interpolation interp = (g_interpolation == INTERPO_NEAREST ? OCIO::INTERP_NEAREST :
 															g_interpolation == INTERPO_LINEAR ? OCIO::INTERP_LINEAR :
 															g_interpolation == INTERPO_TETRAHEDRAL ? OCIO::INTERP_TETRAHEDRAL :
+							                                g_interpolation == INTERPO_CUBIC ? OCIO::INTERP_CUBIC :
 															OCIO::INTERP_BEST);
 	                    
 						const OCIO::TransformDirection direction = (g_invert ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);
