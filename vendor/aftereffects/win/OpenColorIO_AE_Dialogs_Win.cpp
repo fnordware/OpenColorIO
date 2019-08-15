@@ -468,7 +468,7 @@ bool ColorSpacePopUpMenu(OCIO::ConstConfigRcPtr config, std::string &colorSpace,
         
         std::string colorSpacePath;
         
-        if(family == NULL)
+        if(family == NULL || family == std::string(""))
         {
             colorSpacePath = colorSpaceName;
         }
