@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <algorithm>
 #include <cmath>
@@ -208,7 +183,7 @@ inline void ApplyPower<false>(__m128& pix, const __m128& power)
 {
     __m128 negMask = _mm_cmplt_ps(pix, EZERO);
     __m128 pixPower = ssePower(pix, power);
-    pix = sseSelect(pixPower, pix, negMask);
+    pix = sseSelect(negMask, pix, pixPower);
 }
 
 // Apply the saturation component to the the pixel's values
@@ -323,8 +298,8 @@ CDLOpCPU::CDLOpCPU(ConstCDLOpDataRcPtr & cdl)
     ,   m_outScale(1.0f)
     ,   m_alphaScale(1.0f)
 {
-    m_inScale = 1.0f / GetBitDepthMaxValue(cdl->getInputBitDepth());
-    m_outScale = GetBitDepthMaxValue(cdl->getOutputBitDepth());
+    m_inScale = 1.0f / (float)GetBitDepthMaxValue(cdl->getInputBitDepth());
+    m_outScale = (float)GetBitDepthMaxValue(cdl->getOutputBitDepth());
     m_alphaScale = m_inScale * m_outScale;
 
     m_renderParams.update(cdl);
@@ -542,7 +517,7 @@ void CDLRendererNoClampRev::apply(const void * inImg, void * outImg, long numPix
 }
 
 // TODO:  Add a faster renderer for the case where power and saturation are 1.
-OpCPURcPtr CDLOpCPU::GetRenderer(ConstCDLOpDataRcPtr & cdl)
+ConstOpCPURcPtr CDLOpCPU::GetRenderer(ConstCDLOpDataRcPtr & cdl)
 {
     switch(cdl->getStyle())
     {
@@ -557,7 +532,7 @@ OpCPURcPtr CDLOpCPU::GetRenderer(ConstCDLOpDataRcPtr & cdl)
     }
 
     throw Exception("Unknown CDL style");
-    return OpCPURcPtr();
+    return ConstOpCPURcPtr();
 }
 
 }

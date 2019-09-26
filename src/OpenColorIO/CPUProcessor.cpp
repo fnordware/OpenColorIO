@@ -1,185 +1,333 @@
-/*
-Copyright (c) 2019 Autodesk Inc., et al.
-All Rights Reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+#include <string.h>
 
 #include <OpenColorIO/OpenColorIO.h>
 
 #include "BitDepthUtils.h"
 #include "CPUProcessor.h"
 #include "ops/Lut1D/Lut1DOpCPU.h"
+#include "ops/Lut3D/Lut3DOpCPU.h"
+#include "ops/Matrix/MatrixOps.h"
+#include "ops/Range/RangeOpCPU.h"
+#include "ScanlineHelper.h"
 
 
 OCIO_NAMESPACE_ENTER
 {
 
-// Create the CPUOp instance for any bit depths.
-ConstOpCPURcPtr CreateCPUOp(const OpRcPtr & op, BitDepth inBD, BitDepth outBD)
+template<BitDepth inBD, BitDepth outBD>
+class BitDepthCast : public OpCPU
 {
-    ConstOpRcPtr o = op;
+    typedef typename BitDepthInfo<inBD>::Type InType;
+    typedef typename BitDepthInfo<outBD>::Type OutType;
 
-    if(inBD==BIT_DEPTH_F32 && outBD==BIT_DEPTH_F32)
+public:
+    BitDepthCast() = default;
+    ~BitDepthCast() override {};
+
+    void apply(const void * inImg, void * outImg, long numPixels) const override
     {
-        // The ops were already finalized in RGBA F32 so the existing
-        // CPUOp instances can be reused as-is.
-        return o->getCPUOp();
+        const InType * in = reinterpret_cast<const InType*>(inImg);
+        OutType * out = reinterpret_cast<OutType*>(outImg);
+
+        for(long pxl=0; pxl<numPixels; ++pxl)
+        {
+            out[0] = Converter<outBD>::CastValue(in[0] * m_scale);
+            out[1] = Converter<outBD>::CastValue(in[1] * m_scale);
+            out[2] = Converter<outBD>::CastValue(in[2] * m_scale);
+            out[3] = Converter<outBD>::CastValue(in[3] * m_scale);
+
+            in  += 4;
+            out += 4;
+        }
     }
-    else if (o->data()->getType()==OpData::Lut1DType)
+
+protected:
+    const float m_scale = float(BitDepthInfo<outBD>::maxValue)
+                            / float(BitDepthInfo<inBD>::maxValue);
+};
+
+template<>
+class BitDepthCast<BIT_DEPTH_F32, BIT_DEPTH_F32> : public OpCPU
+{
+public:
+    BitDepthCast() = default;
+    ~BitDepthCast() override {};
+
+    void apply(const void * inImg, void * outImg, long numPixels) const override
     {
-        // Note: Only case where a clone is mandatory.
-        Lut1DOpDataRcPtr lut = DynamicPtrCast<const Lut1DOpData>(o->data())->clone();
-        lut->setInputBitDepth(inBD);
-        lut->setOutputBitDepth(outBD);
-        lut->finalize();
-
-        ConstLut1DOpDataRcPtr l = lut;
-        return GetLut1DRenderer(l, inBD, outBD);
+        if(inImg!=outImg)
+        {
+            memcpy(outImg, inImg, 4*numPixels*sizeof(float));
+        }
     }
+};
 
-    throw Exception("Only the 1D LUT Op supports other bit depths than F32");
+ConstOpCPURcPtr CreateGenericBitDepthHelper(BitDepth in, BitDepth out)
+{
+
+#define ADD_OUT_BIT_DEPTH(in, out)                    \
+case out:                                             \
+{                                                     \
+    return std::make_shared<BitDepthCast<in, out>>(); \
+    break;                                            \
 }
 
-std::string PixelFormatToString(PixelFormat pxlFormat)
-{
-    std::string val;
+#define ADD_IN_BIT_DEPTH(in)                          \
+case in:                                              \
+{                                                     \
+    switch(out)                                       \
+    {                                                 \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_UINT8)        \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_UINT10)       \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_UINT12)       \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_UINT16)       \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_F16)          \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_F32)          \
+        case BIT_DEPTH_UINT14:                        \
+        case BIT_DEPTH_UINT32:                        \
+        case BIT_DEPTH_UNKNOWN:                       \
+        default:                                      \
+            throw Exception("Unsupported bit-depth"); \
+            break;                                    \
+                                                      \
+    }                                                 \
+    break;                                            \
+}
 
-    switch(ExtractChannelOrder(pxlFormat))
+
+    switch(in)
     {
-        case CHANNEL_ORDERING_RGBA:
-            val += "rgba";
-            break;
-        case CHANNEL_ORDERING_BGRA:
-            val += "bgra";
-            break;
-        default:
-            throw Exception("Unsupported channel ordering");
-            break;
-    }
-
-    val += "_";
-
-    switch(ExtractBitDepth(pxlFormat))
-    {
-        case BIT_DEPTH_UINT8:
-            val += "uint8";
-            break;
-        case BIT_DEPTH_UINT10:
-            val += "uint10";
-            break;
-        case BIT_DEPTH_UINT12:
-            val += "uint12";
-            break;
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_UINT8)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_UINT10)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_UINT12)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_UINT16)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_F16)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_F32)
         case BIT_DEPTH_UINT14:
-            val += "uint14";
-            break;
-        case BIT_DEPTH_F16:
-            val += "half";
-            break;
-        case BIT_DEPTH_F32:
-            val += "float";
-            break;
+        case BIT_DEPTH_UINT32:
+        case BIT_DEPTH_UNKNOWN:
         default:
-            throw Exception("Unsupported bit depth");
-            break;
+            throw Exception("Unsupported bit-depth");
     }
 
-    return val;    
+#undef ADD_OUT_BIT_DEPTH
+#undef ADD_IN_BIT_DEPTH
+
+    throw Exception("Unsupported bit-depths");
 }
 
-OpCPURcPtr CreateChannelOrderOp(ChannelOrdering inChannelOrder,
-                                ChannelOrdering outChannelOrder, 
-                                BitDepth bitdepth)
+// 1D LUT is the only op natively supporting bit-depths.
+ConstOpCPURcPtr CreateLut1DHelper(ConstLut1DOpDataRcPtr & lut, BitDepth in, BitDepth out)
 {
-    OpCPURcPtr cpu;
+    if(in==out && in==BIT_DEPTH_F32)
+    {
+        if(lut->getInputBitDepth()!=BIT_DEPTH_F32
+            || lut->getOutputBitDepth()!=BIT_DEPTH_F32)
+        {
+            throw Exception("Unsupported 1D LUT bit-depths.");
+        }
 
-    // TODO: Create the CPUOp instance dedicated to channel order conversions.
+        return GetLut1DRenderer(lut, in, out);
+    }
 
-    return cpu;
+    Lut1DOpDataRcPtr l = lut->clone();
+    l->setInputBitDepth(in);
+    l->setOutputBitDepth(out);
+    ConstLut1DOpDataRcPtr tmp = l;
+    return GetLut1DRenderer(tmp, in, out);
 }
 
-// Create the Op to handle pixel format conversions.
-OpCPURcPtr CreatePixelFormatOp(PixelFormat in, PixelFormat out)
+void CreateCPUEngine(const OpRcPtrVec & ops,
+                     BitDepth in,
+                     BitDepth out,
+                     // The bit-depth 'cast' or the first CPU Op.
+                     ConstOpCPURcPtr & inBitDepthOp,
+                     // The remaining CPU Ops.
+                     ConstOpCPURcPtrVec & cpuOps,
+                     // The bit-depth 'cast' or the last CPU Op.
+                     ConstOpCPURcPtr & outBitDepthOp)
 {
-    OpCPURcPtr cpu;
+    const size_t maxOps = ops.size();
+    for(size_t idx=0; idx<maxOps; ++idx)
+    {
+        ConstOpRcPtr op = ops[idx];
+        ConstOpDataRcPtr opData = op->data();
 
-    // TODO: Create the CPUOp instance dedicated to pixel format 
-    //       and/or bit depth conversions.
+        if(idx==0)
+        {
+            if(opData->getType()==OpData::Lut1DType)
+            {
+                ConstLut1DOpDataRcPtr lut = DynamicPtrCast<const Lut1DOpData>(opData);
+                inBitDepthOp = CreateLut1DHelper(lut, in, BIT_DEPTH_F32);
+            }
+            else if(in==BIT_DEPTH_F32)
+            {
+                inBitDepthOp = op->getCPUOp();
+            }
+            else
+            {
+                inBitDepthOp = CreateGenericBitDepthHelper(in, BIT_DEPTH_F32);
+                cpuOps.push_back(op->getCPUOp());
+            }
 
-    return cpu;
+            if(maxOps==1)
+            {
+                outBitDepthOp = CreateGenericBitDepthHelper(BIT_DEPTH_F32, out);
+            }
+        }
+        else if(idx==(maxOps-1))
+        {
+            if(opData->getType()==OpData::Lut1DType)
+            {
+                ConstLut1DOpDataRcPtr lut = DynamicPtrCast<const Lut1DOpData>(opData);
+                outBitDepthOp = CreateLut1DHelper(lut, BIT_DEPTH_F32, out);
+            }
+            else if(out==BIT_DEPTH_F32)
+            {
+                outBitDepthOp = op->getCPUOp();
+            }
+            else
+            {
+                outBitDepthOp = CreateGenericBitDepthHelper(BIT_DEPTH_F32, out);
+                cpuOps.push_back(op->getCPUOp());
+            }
+        }
+        else
+        {
+            cpuOps.push_back(op->getCPUOp());
+        }
+    }
 }
 
-const char * CPUProcessor::Impl::getCacheID() const
+
+ScanlineHelper * CreateScanlineHelper(BitDepth in, const ConstOpCPURcPtr & inBitDepthOp,
+                                      BitDepth out, const ConstOpCPURcPtr & outBitDepthOp)
 {
-    return m_cacheID.c_str();
+
+#define ADD_OUT_BIT_DEPTH(in, out)                    \
+case out:                                             \
+{                                                     \
+    return new GenericScanlineHelper<BitDepthInfo<in>::Type,                      \
+                                     BitDepthInfo<out>::Type>(in, inBitDepthOp,   \
+                                                              out, outBitDepthOp);\
+    break;                                            \
 }
 
-void CPUProcessor::Impl::finalize(const OpRcPtrVec & ops, PixelFormat in, PixelFormat out)
+#define ADD_IN_BIT_DEPTH(in)                          \
+case in:                                              \
+{                                                     \
+    switch(out)                                       \
+    {                                                 \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_UINT8)        \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_UINT10)       \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_UINT12)       \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_UINT16)       \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_F16)          \
+        ADD_OUT_BIT_DEPTH(in, BIT_DEPTH_F32)          \
+        case BIT_DEPTH_UINT14:                        \
+        case BIT_DEPTH_UINT32:                        \
+        case BIT_DEPTH_UNKNOWN:                       \
+        default:                                      \
+            throw Exception("Unsupported bit-depth"); \
+                                                      \
+    }                                                 \
+    break;                                            \
+}
+
+    switch(in)
+    {
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_UINT8)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_UINT10)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_UINT12)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_UINT16)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_F16)
+        ADD_IN_BIT_DEPTH(BIT_DEPTH_F32)
+        case BIT_DEPTH_UINT14:
+        case BIT_DEPTH_UINT32:
+        case BIT_DEPTH_UNKNOWN:
+        default:
+            throw Exception("Unsupported bit-depth");
+    }
+
+#undef ADD_OUT_BIT_DEPTH
+#undef ADD_IN_BIT_DEPTH
+
+    throw Exception("Unsupported bit-depths");
+}
+
+DynamicPropertyRcPtr CPUProcessor::Impl::getDynamicProperty(DynamicPropertyType type) const
 {
-    // Whatever are the requested input and output pixel formats, the internal 
-    // computations are only performed in RGBA F32 i.e. only the first and the last Ops
-    // handle different pixel formats. To simplify the Op implementations 
-    // a custom internal Op handles any possible pixel formats. Only the 1D LUT Op 
-    // natively supports bit depths i.e. to benefit from its lookup implementation 
-    // for interger bit depths.
-    // 
-    // The finalization of the CPUProcessor instance starting from a finalized Processor 
-    // instance, it could then reuse as-is the existing CPUOp instances without 
-    // any performance or memory costs.
-    // 
-    // The sequence is:
-    // 1. ConstProcessorRcPtr Config::getProcessor() (refer to Config.cpp)
-    // 1.1. Create an empty processor
-    // 1.2. Add the transformation
-    // 1.3. processor finalization (refer to Processor.cpp)
-    // 1.3.1. FinalizeOpVec
-    // 1.3.1.1 OptimizeOpVec
-    // 1.3.1.2 Op finalize
-    // 2. From the processor instance, access to a CPUProcessor instance
-    // 2.1. Create an empty CPU processor
-    // 2.2. CPU processor finalization
+    if(m_inBitDepthOp->hasDynamicProperty(type))
+    {
+        return m_inBitDepthOp->getDynamicProperty(type);
+    }
 
-    // Note:
-    // Avoid changing/cloning the op and op data instances as the list of ops was 
-    // already finalized in RGBA F32 pixel format by the processor instance, 
-    // and all ops (except 1D LUT) are only used in that context.
+    for(const auto & op : m_cpuOps)
+    {
+        if(op->hasDynamicProperty(type))
+        {
+            return op->getDynamicProperty(type);
+        }
+    }
 
-    // Note: 
-    // Only the 1D LUT CPUOp can natively support the bit depth conversions
-    // (and benefit from it) so the algorithm tries to optimize the 1D LUT CPUOp usage 
-    // from the list of ops. However, the op does only support the RGBA channel ordering.
+    if(m_outBitDepthOp->hasDynamicProperty(type))
+    {
+        return m_outBitDepthOp->getDynamicProperty(type);
+    }
 
-    m_ops.clear();
+    throw Exception("Cannot find dynamic property; not used by CPU processor.");
+}
 
-    m_inPixelFormat  = in;
-    m_outPixelFormat = out;
+void CPUProcessor::Impl::finalize(const OpRcPtrVec & rawOps,
+                                  BitDepth in, BitDepth out,
+                                  OptimizationFlags oFlags, FinalizationFlags fFlags)
+{
+    AutoMutex lock(m_mutex);
+
+    OpRcPtrVec ops = rawOps.clone();
+
+    if(!ops.empty())
+    {
+        // Optimize the ops.
+
+        OptimizeOpVec(ops, in, out, oFlags);
+    }
+
+    if(ops.empty())
+    {
+        // Support an empty list.
+
+        const double scale = GetBitDepthMaxValue(out) / GetBitDepthMaxValue(in);
+
+        if(scale==1.0f)
+        {
+            // Needs at least one op (even an identity one) as the input
+            // and output buffers could be different.
+            CreateIdentityMatrixOp(ops);
+        }
+        else
+        {
+            // Note: CreateScaleOp will not add an op if scale == 1.
+            const double scale4[4] = {scale, scale, scale, scale};
+            CreateScaleOp(ops, scale4, TRANSFORM_DIR_FORWARD);
+        }
+    }
+
+    // Finalize the ops.
+
+    FinalizeOpVec(ops, fFlags);
+    UnifyDynamicProperties(ops);
+
+    m_inBitDepth  = in;
+    m_outBitDepth = out;
 
     // Does the color processing introduce crosstalk between the pixel channels?
 
     m_hasChannelCrosstalk = false;
-    for(auto & op : ops)
+    for(const auto & op : ops)
     {
         if(op->hasChannelCrosstalk())
         {
@@ -188,196 +336,123 @@ void CPUProcessor::Impl::finalize(const OpRcPtrVec & ops, PixelFormat in, PixelF
         }
     }
 
-    const size_t numOps = ops.size();
+    // Get the CPU Ops while taking care of the input and output bit-depths.
 
-    // Adjust the op list to only process RGBA F32 pixel formats except for 1D LUT ops
-    // which benefit from integer bit depths.
-
-    if(numOps==1)
-    {
-        if(DynamicPtrCast<const Op>(ops[0])->data()->getType()==OpData::Lut1DType)
-        {
-            if(ExtractChannelOrder(in)!=CHANNEL_ORDERING_RGBA)
-            {
-                m_ops.push_back( CreateChannelOrderOp(ExtractChannelOrder(in),
-                                                      CHANNEL_ORDERING_RGBA, 
-                                                      ExtractBitDepth(in)) );
-            }
-
-            // Benefit from the 1D LUT look-up for integer bit depths.
-            m_ops.push_back( CreateCPUOp(ops[0], ExtractBitDepth(in), ExtractBitDepth(out)) );
-
-            if(ExtractChannelOrder(out)!=CHANNEL_ORDERING_RGBA)
-            {
-                m_ops.push_back( CreateChannelOrderOp(CHANNEL_ORDERING_RGBA,
-                                                      ExtractChannelOrder(out), 
-                                                      ExtractBitDepth(out)) );
-            }
-        }
-        else
-        {
-            if(in!=PIXEL_FORMAT_RGBA_F32)
-            {
-                m_ops.push_back( CreatePixelFormatOp(in, PIXEL_FORMAT_RGBA_F32) );
-            }
-
-            m_ops.push_back( CreateCPUOp(ops[0], BIT_DEPTH_F32, BIT_DEPTH_F32) );
-
-            if(out!=PIXEL_FORMAT_RGBA_F32)
-            {
-                m_ops.push_back( CreatePixelFormatOp(PIXEL_FORMAT_RGBA_F32, out) );
-            }
-        }
-    }
-    else if(numOps>1)
-    {
-        // Step 1: Process the head of the list.
-
-        if(DynamicPtrCast<const Op>(ops[0])->data()->getType()==OpData::Lut1DType)
-        {
-            // Benefit from the 1D LUT look-up for integer bit depths.
-
-            if(ExtractChannelOrder(in)!=CHANNEL_ORDERING_RGBA)
-            {
-                m_ops.push_back( CreateChannelOrderOp(ExtractChannelOrder(in),
-                                                      CHANNEL_ORDERING_RGBA, 
-                                                      ExtractBitDepth(in)) );
-            }
-
-            m_ops.push_back( CreateCPUOp(ops[0], ExtractBitDepth(in), BIT_DEPTH_F32) );
-        }
-        else
-        {
-            if(in!=PIXEL_FORMAT_RGBA_F32)
-            {
-                m_ops.push_back( CreatePixelFormatOp(in, PIXEL_FORMAT_RGBA_F32) );
-            }
-
-            m_ops.push_back( CreateCPUOp(ops[0], BIT_DEPTH_F32, BIT_DEPTH_F32) );
-        }
-
-        // Step 2: Process the body of the list (i.e. all ops except the first and the last ones).
-
-        for(size_t idx=1; idx<(numOps-1); ++idx)
-        {
-            m_ops.push_back(ops[idx]->getCPUOp());
-        }
-
-        // Step 3: Process the tail of the list.
-
-        if(DynamicPtrCast<const Op>(ops[numOps-1])->data()->getType()==OpData::Lut1DType)
-        {
-            // Benefit from the 1D LUT native bit depth support.
-
-            m_ops.push_back( CreateCPUOp(ops[numOps-1], BIT_DEPTH_F32, ExtractBitDepth(out)) );
-
-            if(ExtractChannelOrder(out)!=CHANNEL_ORDERING_RGBA)
-            {
-                m_ops.push_back( CreateChannelOrderOp(CHANNEL_ORDERING_RGBA,
-                                                      ExtractChannelOrder(out), 
-                                                      ExtractBitDepth(out)) );
-            }
-        }
-        else
-        {
-            m_ops.push_back( CreateCPUOp(ops[numOps-1], BIT_DEPTH_F32, BIT_DEPTH_F32) );
-
-            if(out!=PIXEL_FORMAT_RGBA_F32)
-            {
-                // Convert from RGBA F32 to the output pixel format.
-                m_ops.push_back( CreatePixelFormatOp(PIXEL_FORMAT_RGBA_F32, out) );
-            }
-        }
-    }
-
-    // The optimization may result in an empty op list (e.g. a Processor is created 
-    // with the same src & dst colour space).
-
-    else if (in!=PIXEL_FORMAT_RGBA_F32 || out!=PIXEL_FORMAT_RGBA_F32)
-    {
-        // There is some conversion needed between the in and out pixel formats.
-
-        if(in!=PIXEL_FORMAT_RGBA_F32)
-        {
-            m_ops.push_back( CreatePixelFormatOp(in, PIXEL_FORMAT_RGBA_F32) );
-        }
-
-        if(out!=PIXEL_FORMAT_RGBA_F32)
-        {
-            m_ops.push_back( CreatePixelFormatOp(PIXEL_FORMAT_RGBA_F32, out) );
-        }
-    }
-    else
-    {
-        // There is some minimal processing needed to support different buffer images.
-
-        m_ops.push_back( CreatePixelFormatOp(PIXEL_FORMAT_RGBA_F32, PIXEL_FORMAT_RGBA_F32) );
-    }
+    m_cpuOps.clear();
+    m_inBitDepthOp = nullptr;
+    m_outBitDepthOp = nullptr;
+    CreateCPUEngine(ops, in, out, m_inBitDepthOp, m_cpuOps, m_outBitDepthOp);
 
     // Compute the cache id.
 
     std::stringstream ss;
-    ss << "from " << PixelFormatToString(in)
-       << " to "  << PixelFormatToString(out)
+    ss << "CPU Processor: from " << BitDepthToString(in)
+       << " to "  << BitDepthToString(out)
+       << " oFlags " << oFlags
+       << " fFlags " << fFlags
        << " ops :";
-    for(auto & op : ops)
+    for(const auto & op : ops)
     {
         ss << " " << op->getCacheID();
     }
 
     m_cacheID = ss.str();
-
-    m_numOps         = m_ops.size();
-
-    // A float output buffer could be used by intermediate Op processings
-    // which are in BIT_DEPTH_F32 by default.
-    // TODO: Validate that the pixel format has 4 color channels; 
-    //       otherwise, an intermediate buffer is still needed.
-    m_reuseOutBuffer = ExtractBitDepth(getOutputPixelFormat())==BIT_DEPTH_F32;
 }
 
-void CPUProcessor::Impl::apply(const void * inImg, void * outImg, long numPixels) const
+void CPUProcessor::Impl::apply(ImageDesc & imgDesc) const
+{   
+    // Get the ScanlineHelper for this thread (no significant performance impact).
+    std::unique_ptr<ScanlineHelper> 
+        scanlineBuilder(CreateScanlineHelper(m_inBitDepth, m_inBitDepthOp,
+                                             m_outBitDepth, m_outBitDepthOp));
+
+    // Prepare the processing.
+    scanlineBuilder->init(imgDesc);
+
+    float * rgbaBuffer = nullptr;
+    long numPixels = 0;
+
+    while(true)
+    {
+        scanlineBuilder->prepRGBAScanline(&rgbaBuffer, numPixels);
+        if(numPixels == 0) break;
+
+        const size_t numOps = m_cpuOps.size();
+        for(size_t i = 0; i<numOps; ++i)
+        {
+            m_cpuOps[i]->apply(rgbaBuffer, rgbaBuffer, numPixels);
+        }
+
+        scanlineBuilder->finishRGBAScanline();
+    }
+}
+
+void CPUProcessor::Impl::apply(const ImageDesc & srcImgDesc, ImageDesc & dstImgDesc) const
 {
-    // TODO: Investigate a template method to remove the if's which could impact
-    //       the one pixel processing.
+    // Get the ScanlineHelper for this thread (no significant performance impact).
+    std::unique_ptr<ScanlineHelper> 
+        scanlineBuilder(CreateScanlineHelper(m_inBitDepth, m_inBitDepthOp,
+                                             m_outBitDepth, m_outBitDepthOp));
 
-    if(m_numOps==1)
+    // Prepare the processing.
+    scanlineBuilder->init(srcImgDesc, dstImgDesc);
+
+    float * rgbaBuffer = nullptr;
+    long numPixels = 0;
+
+    while(true)
     {
-        m_ops[0]->apply(inImg, outImg, numPixels);
-    }
-    else if(m_reuseOutBuffer)
-    {
-        // Use the output buffer as intermediate buffer.
-        float * out = (float *)outImg;
+        scanlineBuilder->prepRGBAScanline(&rgbaBuffer, numPixels);
+        if(numPixels == 0) break;
 
-        m_ops[0]->apply(inImg, out, numPixels);
-
-        for(size_t idx=1; idx<=m_numOps-2; ++idx)
+        const size_t numOps = m_cpuOps.size();
+        for(size_t i = 0; i<numOps; ++i)
         {
-            m_ops[idx]->apply(out, out, numPixels);
+            m_cpuOps[i]->apply(rgbaBuffer, rgbaBuffer, numPixels);
         }
 
-        m_ops[m_numOps-1]->apply(out, out, numPixels);
+        scanlineBuilder->finishRGBAScanline();
     }
-    else
+}
+
+void CPUProcessor::Impl::applyRGB(float * pixel) const
+{
+    float v[4]{pixel[0], pixel[1], pixel[2], 0.0f};
+
+    m_inBitDepthOp->apply(v, v, 1);
+
+    const size_t numOps = m_cpuOps.size();
+    for(size_t i = 0; i<numOps; ++i)
     {
-        std::vector<float> buffer(numPixels*4);
-
-        m_ops[0]->apply(inImg, &buffer[0], numPixels);
-
-        for(size_t idx=1; idx<=m_numOps-2; ++idx)
-        {
-            m_ops[idx]->apply(&buffer[0], &buffer[0], numPixels);
-        }
-
-        m_ops[m_numOps-1]->apply(&buffer[0], outImg, numPixels);
+        m_cpuOps[i]->apply(pixel, pixel, 1);
     }
+
+    m_outBitDepthOp->apply(v, v, 1);
+
+    pixel[0] = v[0];
+    pixel[1] = v[1];
+    pixel[2] = v[2];
+}
+
+void CPUProcessor::Impl::applyRGBA(float * pixel) const
+{
+    m_inBitDepthOp->apply(pixel, pixel, 1);
+
+    const size_t numOps = m_cpuOps.size();
+    for(size_t i = 0; i<numOps; ++i)
+    {
+        m_cpuOps[i]->apply(pixel, pixel, 1);
+    }
+
+    m_outBitDepthOp->apply(pixel, pixel, 1);
 }
 
 
 
 
 //////////////////////////////////////////////////////////////////////////
+
+
 
 
 void CPUProcessor::deleter(CPUProcessor * c)
@@ -396,11 +471,6 @@ CPUProcessor::~CPUProcessor()
     m_impl = nullptr;
 }
 
-bool CPUProcessor::isNoOp() const
-{
-    return getImpl()->isNoOp();
-}
-
 bool CPUProcessor::hasChannelCrosstalk() const
 {
     return getImpl()->hasChannelCrosstalk();
@@ -411,21 +481,40 @@ const char * CPUProcessor::getCacheID() const
     return getImpl()->getCacheID();
 }
 
-PixelFormat CPUProcessor::getInputPixelFormat() const
+BitDepth CPUProcessor::getInputBitDepth() const
 {
-    return getImpl()->getInputPixelFormat();
+    return getImpl()->getInputBitDepth();
 }
 
-PixelFormat CPUProcessor::getOutputPixelFormat() const
+BitDepth CPUProcessor::getOutputBitDepth() const
 {
-    return getImpl()->getOutputPixelFormat();
+    return getImpl()->getOutputBitDepth();
 }
 
-void CPUProcessor::apply(const void * inImg, void * outImg, long numPixels) const
+DynamicPropertyRcPtr CPUProcessor::getDynamicProperty(DynamicPropertyType type) const
 {
-    getImpl()->apply(inImg, outImg, numPixels);
+    return getImpl()->getDynamicProperty(type);
 }
 
+void CPUProcessor::apply(ImageDesc & imgDesc) const
+{
+    getImpl()->apply(imgDesc);
+}
+
+void CPUProcessor::apply(const ImageDesc & srcImgDesc, ImageDesc & dstImgDesc) const
+{
+    getImpl()->apply(srcImgDesc, dstImgDesc);
+}
+
+void CPUProcessor::applyRGB(float * pixel) const
+{
+    getImpl()->applyRGB(pixel);
+}
+
+void CPUProcessor::applyRGBA(float * pixel) const
+{
+    getImpl()->applyRGBA(pixel);
+}
 
 }
 OCIO_NAMESPACE_EXIT
@@ -434,149 +523,290 @@ OCIO_NAMESPACE_EXIT
 
 ///////////////////////////////////////////////////////////////////////////////
 
+
+
 #ifdef OCIO_UNIT_TEST
 
 namespace OCIO = OCIO_NAMESPACE;
 
 #include "ops/Lut1D/Lut1DOp.h"
 #include "ops/Lut1D/Lut1DOpData.h"
-#include "unittest.h"
+#include "ScanlineHelper.h"
+#include "UnitTest.h"
 #include "UnitTestUtils.h"
 
 
-// TODO: CPUProcessor being part of the OCIO public API limits the ability 
-//       to inspect the CPUProcessor instance content i.e. the list of CPUOps. 
-//       Even a successful apply could hide a major performance hit because of
-//       an 'useless' CPUOp in the list. 
-
-
-template<OCIO::PixelFormat pf>
-struct ExtractBitDepthInfo
+OCIO_ADD_TEST(CPUProcessor, flag_composition)
 {
-    static const OCIO::BitDepth bd = OCIO::BitDepth(0x00FF&pf);
-};
+    // The test validates the build of a custom optimization flag.
 
-template<OCIO::PixelFormat inPF, OCIO::PixelFormat outPF, unsigned line>
-OCIO::ConstCPUProcessorRcPtr ComputeValues(OCIO::ConstProcessorRcPtr processor, 
-                                           const void * inImg, 
-                                           const void * resImg, 
+    OCIO::OptimizationFlags customFlags = OCIO::OPTIMIZATION_LOSSLESS;
+
+    OCIO_CHECK_EQUAL((customFlags & OCIO::OPTIMIZATION_COMP_LUT1D),
+                     OCIO::OPTIMIZATION_NONE);
+
+    customFlags
+        = OCIO::OptimizationFlags(customFlags | OCIO::OPTIMIZATION_COMP_LUT1D);
+
+    OCIO_CHECK_EQUAL((customFlags & OCIO::OPTIMIZATION_COMP_LUT1D),
+                     OCIO::OPTIMIZATION_COMP_LUT1D);
+}
+
+
+// TODO: CPUProcessor being part of the OCIO public API limits the ability
+//       to inspect the CPUProcessor instance content i.e. the list of CPUOps.
+//       Even a successful apply could hide a major performance hit because of
+//       a missing/partial optimization.
+
+
+template<OCIO::BitDepth inBD, OCIO::BitDepth outBD, unsigned line>
+OCIO::ConstCPUProcessorRcPtr ComputeValues(OCIO::ConstProcessorRcPtr processor,
+                                           const void * inImg,
+                                           OCIO::ChannelOrdering inChans,
+                                           const void * resImg,
+                                           OCIO::ChannelOrdering outChans,
                                            long numPixels,
                                            // Default value to nan to break any float comparisons
                                            // as a valid error threshold is mandatory in that case.
-                                           float absErrorThreshold = std::numeric_limits<float>::quiet_NaN())
+                                           float absErrorThreshold
+                                                = std::numeric_limits<float>::quiet_NaN())
 {
-    typedef typename OCIO::BitDepthInfo< ExtractBitDepthInfo<outPF>::bd >::Type outType;
+    typedef typename OCIO::BitDepthInfo<inBD>::Type inType;
+    typedef typename OCIO::BitDepthInfo<outBD>::Type outType;
 
     OCIO::ConstCPUProcessorRcPtr cpuProcessor;
-    OIIO_CHECK_NO_THROW(cpuProcessor = processor->getCPUProcessor(inPF, outPF));
 
-    const size_t numValues = size_t(numPixels * 4);
+    OCIO_CHECK_NO_THROW_FROM(cpuProcessor
+        = processor->getOptimizedCPUProcessor(inBD, outBD,
+                                              OCIO::OPTIMIZATION_DEFAULT,
+                                              OCIO::FINALIZATION_DEFAULT), line);
+
+    size_t numChannels = 4;
+    if(outChans==OCIO::CHANNEL_ORDERING_RGB || outChans==OCIO::CHANNEL_ORDERING_BGR)
+    {
+        numChannels = 3;
+    }
+    const size_t numValues = size_t(numPixels * numChannels);
+
+    const OCIO::PackedImageDesc srcImgDesc((void *)inImg, numPixels, 1,
+                                           inChans,
+                                           inBD,
+                                           sizeof(inType),
+                                           OCIO::AutoStride,
+                                           OCIO::AutoStride);
 
     std::vector<outType> out(numValues);
-    OIIO_CHECK_NO_THROW(cpuProcessor->apply(inImg, &out[0], numPixels));
+    OCIO::PackedImageDesc dstImgDesc(&out[0], numPixels, 1,
+                                     outChans,
+                                     outBD,
+                                     sizeof(outType),
+                                     OCIO::AutoStride,
+                                     OCIO::AutoStride);
 
-    const outType * res = (const outType *)resImg;
+    OCIO_CHECK_NO_THROW_FROM(cpuProcessor->apply(srcImgDesc, dstImgDesc), line);
+
+    const outType * res = reinterpret_cast<const outType*>(resImg);
 
     for(size_t idx=0; idx<numValues; ++idx)
     {
-        if(OCIO::BitDepthInfo< ExtractBitDepthInfo<outPF>::bd >::isFloat)
+        if(OCIO::BitDepthInfo<outBD>::isFloat)
         {
-            OIIO_CHECK_CLOSE_FROM(out[idx], res[idx], absErrorThreshold, line);
+            OCIO_CHECK_CLOSE_FROM(out[idx], res[idx], absErrorThreshold, line);
         }
         else
         {
-            OIIO_CHECK_EQUAL_FROM(out[idx], res[idx], line);
+            OCIO_CHECK_EQUAL_FROM(out[idx], res[idx], line);
         }
     }
 
     return cpuProcessor;
 }
 
-OIIO_ADD_TEST(CPUProcessor, with_one_matrix)
+OCIO_ADD_TEST(CPUProcessor, with_one_matrix)
 {
-    // The unit test validates that pixel formats are correctly 
+    // The unit test validates that pixel formats are correctly
     // processed when the op list contains only one arbitrary Op
-    // (except the 1D LUT one).
+    // (except a 1D LUT one which has dedicated optimizations).
 
     OCIO::ConfigRcPtr config = OCIO::Config::Create();
 
     OCIO::MatrixTransformRcPtr transform = OCIO::MatrixTransform::Create();
-    const float offset4[4] = { 1.4002f, 0.4005f, 0.8007f, 0.0f };
+    constexpr const float offset4[4] = { 1.4002f, 0.4005f, 0.8007f, 0.5f };
     transform->setOffset( offset4 );
 
-    OCIO::ConstProcessorRcPtr processor; 
-    OIIO_CHECK_NO_THROW(processor = config->getProcessor(transform));
+    OCIO::ConstProcessorRcPtr processor;
+    OCIO_CHECK_NO_THROW(processor = config->getProcessor(transform));
 
-    const unsigned NB_PIXELS = 3;
+    constexpr const unsigned NB_PIXELS = 3;
 
     const std::vector<float> f_inImg =
         {  -1.0000f, -0.8000f, -0.1000f,  0.0f,
             0.1023f,  0.5045f,  1.5089f,  1.0f,
             1.0000f,  1.2500f,  1.9900f,  0.0f  };
 
-    OCIO::ConstCPUProcessorRcPtr cpuProcessor; 
+    {
+        const std::vector<float> resImg
+            = { 0.4002f, -0.3995f,  0.7007f,  0.5000f,
+                1.5025f,  0.9050f,  2.3096f,  1.5000f,
+                2.4002f,  1.6505f,  2.7907f,  0.5000f };
+
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                     &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                     NB_PIXELS,
+                                                     1e-5f);
+    }
 
     {
         const std::vector<float> resImg
-            = { 0.4002f, -0.3995f,  0.7007f,  0.0000f,
-                1.5025f,  0.9050f,  2.3096f,  1.0000f,
-                2.4002f,  1.6505f,  2.7907f,  0.0000f };
+            = { -0.1993f, -0.3995f,  1.3002f,  0.5000f,
+                 0.9030f,  0.9050f,  2.9091f,  1.5000f,
+                 1.8007f,  1.6505f,  3.3902f,  0.5000f };
 
-        cpuProcessor 
-            = ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                            OCIO::PIXEL_FORMAT_RGBA_F32,
-                            __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);
-
-        OIIO_CHECK_EQUAL(cpuProcessor->getInputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-        OIIO_CHECK_EQUAL(cpuProcessor->getOutputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-
-        // Validate that the two apply paths produce identical results.
-
-        std::vector<float> f_outImg2(NB_PIXELS * 4);
-        f_outImg2 = f_inImg;
-
-        OCIO::PackedImageDesc desc(&f_outImg2[0], NB_PIXELS, 1, 4);
-        OIIO_CHECK_NO_THROW(processor->apply(desc));
-
-        for(unsigned idx=0; idx<(NB_PIXELS*4); ++idx)
-        {
-            OIIO_CHECK_CLOSE(f_outImg2[idx], resImg[idx],  1e-7f);
-        }
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &f_inImg[0], OCIO::CHANNEL_ORDERING_BGRA,
+                                                     &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                     NB_PIXELS,
+                                                     1e-5f);
     }
 
-    // TODO: Will uncomment after implementation is complete.
-/*
     {
         const std::vector<float> resImg
-            = { 0.7007f, -0.3995f,  0.4002f,  0.0000f,
-                2.3096f,  0.9050f,  1.5025f,  1.0000f,
-                2.7907f,  1.6505f,  2.4002f,  0.0000f };
+            = {  -0.500000f,  0.000700f, 0.300500f, 1.400200f,
+                  0.602300f,  1.305199f, 1.909399f, 2.400200f,
+                  1.500000f,  2.050699f, 2.390500f, 1.400200f  };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                      OCIO::PIXEL_FORMAT_BGRA_F32,
-                      __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &f_inImg[0], OCIO::CHANNEL_ORDERING_ABGR,
+                                                     &resImg[0],  OCIO::CHANNEL_ORDERING_ABGR,
+                                                     NB_PIXELS,
+                                                     1e-5f);
     }
 
     {
-        const std::vector<float> resImg 
-            = { 1.3002f, -0.3995f, -0.1993f, 0.0000f,
-                2.9091f,  0.9050f,  0.9030f, 1.0000f,
-                3.3902f,  1.6505f,  1.8007f, 0.0000f };
+        const std::vector<float> resImg
+            = { 0.7007f, -0.3995f,  0.4002f,  0.5000f,
+                2.3096f,  0.9050f,  1.5025f,  1.5000f,
+                2.7907f,  1.6505f,  2.4002f,  0.5000f };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_BGRA_F32,
-                      OCIO::PIXEL_FORMAT_RGBA_F32,
-                      __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS, 1e-6f);
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                     &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                     NB_PIXELS,
+                                                     1e-5f);
     }
 
     {
-        const std::vector<uint16_t> resImg
-            = { 26227,     0, 45920,     0,
-                65535, 59309, 65535, 65535,
-                65535, 65535, 65535,     0 };
+        const std::vector<float> resImg
+            = { 0.5000f, 0.7007f, -0.3995f, 0.4002f,
+                1.5000f, 2.3096f,  0.9050f, 1.5025f,
+                0.5000f, 2.7907f,  1.6505f, 2.4002f  };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                      OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS);
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                     &resImg[0],  OCIO::CHANNEL_ORDERING_ABGR,
+                                                     NB_PIXELS,
+                                                     1e-5f);
+    }
+
+    {
+        const std::vector<float> inImg =
+            {  -1.0000f, -0.8000f, -0.1000f,
+                0.1023f,  0.5045f,  1.5089f,
+                1.0000f,  1.2500f,  1.9900f  };
+
+        const std::vector<float> resImg
+            = { 0.4002f, -0.3995f,  0.7007f,
+                1.5025f,  0.9050f,  2.3096f,
+                2.4002f,  1.6505f,  2.7907f };
+
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &inImg[0],  OCIO::CHANNEL_ORDERING_RGB,
+                                                     &resImg[0], OCIO::CHANNEL_ORDERING_RGB,
+                                                     NB_PIXELS,
+                                                     1e-5f);
+    }
+
+    {
+        const std::vector<float> inImg =
+            {  -1.0000f, -0.8000f, -0.1000f,
+                0.1023f,  0.5045f,  1.5089f,
+                1.0000f,  1.2500f,  1.9900f  };
+
+        const std::vector<float> resImg
+            = { -0.199299f, -0.399500f, 1.300199f,
+                 0.902999f,  0.905000f, 2.909100f,
+                 1.800699f,  1.650500f, 3.390200f };
+
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &inImg[0],  OCIO::CHANNEL_ORDERING_BGR,
+                                                     &resImg[0], OCIO::CHANNEL_ORDERING_BGR,
+                                                     NB_PIXELS,
+                                                     1e-5f);
+    }
+
+    {
+        const std::vector<float> inImg =
+            {  -1.0000f, -0.8000f, -0.1000f,
+                0.1023f,  0.5045f,  1.5089f,
+                1.0000f,  1.2500f,  1.9900f  };
+
+        const std::vector<float> resImg
+            = { 0.7007f, -0.3995f,  0.4002f,
+                2.3096f,  0.9050f,  1.5025f,
+                2.7907f,  1.6505f,  2.4002f };
+
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &inImg[0],  OCIO::CHANNEL_ORDERING_RGB,
+                                                     &resImg[0], OCIO::CHANNEL_ORDERING_BGR,
+                                                     NB_PIXELS,
+                                                     1e-5f);
+    }
+
+    {
+        const std::vector<float> inImg =
+            {  -1.0000f, -0.8000f, -0.1000f,
+                0.1023f,  0.5045f,  1.5089f,
+                1.0000f,  1.2500f,  1.9900f  };
+
+        const std::vector<float> resImg
+            = { 0.7007f, -0.3995f,  0.4002f, 0.5f,
+                2.3096f,  0.9050f,  1.5025f, 0.5f,
+                2.7907f,  1.6505f,  2.4002f, 0.5f   };
+
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &inImg[0],  OCIO::CHANNEL_ORDERING_RGB,
+                                                     &resImg[0], OCIO::CHANNEL_ORDERING_BGRA,
+                                                     NB_PIXELS,
+                                                     1e-5f);
+    }
+
+    {
+        const std::vector<float> inImg =
+            {  -1.0000f, -0.8000f, -0.1000f,  0.0f,
+                0.1023f,  0.5045f,  1.5089f,  1.0f,
+                1.0000f,  1.2500f,  1.9900f,  0.0f  };
+
+        const std::vector<float> resImg
+            = { 0.7007f, -0.3995f,  0.4002f,
+                2.3096f,  0.9050f,  1.5025f,
+                2.7907f,  1.6505f,  2.4002f   };
+
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &inImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                     &resImg[0], OCIO::CHANNEL_ORDERING_BGR,
+                                                     NB_PIXELS,
+                                                     1e-5f);
     }
 
     const std::vector<uint16_t> i_inImg =
@@ -585,44 +815,103 @@ OIIO_ADD_TEST(CPUProcessor, with_one_matrix)
           5120,  20140, 65535,  0  };
 
     {
-        const std::vector<float> resImg 
-            = { 1.40020000f,  0.40062206f,  0.80118829f,  0.0f,
-                1.40117657f,  0.40245315f,  0.80460631f,  0.0f,
-                1.47832620f,  0.70781672f,  1.80070000f,  0.0f };
+        const std::vector<float> resImg
+            = { 1.40020000f,  0.40062206f,  0.80118829f,  0.5f,
+                1.40117657f,  0.40245315f,  0.80460631f,  0.5f,
+                1.47832620f,  0.70781672f,  1.80070000f,  0.5f };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      OCIO::PIXEL_FORMAT_RGBA_F32,
-                      __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                     &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                     NB_PIXELS,
+                                                     1e-5f);
     }
 
     {
         const std::vector<uint16_t> resImg
-            = { 65535, 26255, 52506, 0,
-                65535, 26375, 52730, 0,
-                65535, 46387, 65535, 0 };
+            = { 65535, 26255, 52506, 32768,
+                65535, 26375, 52730, 32768,
+                65535, 46387, 65535, 32768 };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                        NB_PIXELS);
     }
 
     {
         const std::vector<uint16_t> resImg
-            = { 52506, 26255, 65535, 0,
-                52730, 26375, 65535, 0,
-                65535, 46387, 65535, 0 };
+            = { 52506, 26255, 65535, 32768,
+                52730, 26375, 65535, 32768,
+                65535, 46387, 65535, 32768 };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                      __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                        NB_PIXELS);
     }
-*/
+
+    {
+        const std::vector<uint16_t> resImg
+            = { 52506, 26255, 65535,
+                52730, 26375, 65535,
+                65535, 46387, 65535 };
+
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_BGR,
+                                                        NB_PIXELS);
+    }
+
+    {
+        const std::vector<uint8_t> resImg
+            = { 255, 102, 204, 128,
+                255, 103, 205, 128,
+                255, 180, 255, 128 };
+
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT8, __LINE__>(processor,
+                                                       &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                       &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                       NB_PIXELS);
+    }
+
+    {
+        const std::vector<uint8_t> resImg
+            = { 204, 102, 255,
+                205, 103, 255,
+                255, 180, 255 };
+
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT8, __LINE__>(processor,
+                                                       &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                       &resImg[0],  OCIO::CHANNEL_ORDERING_BGR,
+                                                       NB_PIXELS);
+    }
+
+    {
+        const std::vector<uint8_t> resImg
+            = { 128, 204, 102, 255,
+                128, 205, 103, 255,
+                128, 255, 180, 255 };
+
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT8, __LINE__>(processor,
+                                                       &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                       &resImg[0],  OCIO::CHANNEL_ORDERING_ABGR,
+                                                       NB_PIXELS);
+    }
 }
 
-OIIO_ADD_TEST(CPUProcessor, with_one_1d_lut)
+OCIO_ADD_TEST(CPUProcessor, with_one_1d_lut)
 {
-    // The unit test validates that pixel formats are correctly 
-    // processed when the op list contains only one 1D LUT.
+    // The unit test validates that pixel formats are correctly
+    // processed when the op list only contains one 1D LUT because it
+    // has a dedicated optimization when the input bit-depth is an integer type.
 
     const std::string filePath
         = std::string(OCIO::getTestFilesDir()) + "/lut1d_5.spi1d";
@@ -634,18 +923,16 @@ OIIO_ADD_TEST(CPUProcessor, with_one_1d_lut)
 
     OCIO::ConfigRcPtr config = OCIO::Config::Create();
 
-    OCIO::ConstProcessorRcPtr processor; 
-    OIIO_CHECK_NO_THROW(processor = config->getProcessor(transform));
+    OCIO::ConstProcessorRcPtr processor;
+    OCIO_CHECK_NO_THROW(processor = config->getProcessor(transform));
 
-    const unsigned NB_PIXELS = 4;
+    constexpr const unsigned NB_PIXELS = 4;
 
     const std::vector<float> f_inImg =
         {  -1.0000f, -0.8000f, -0.1000f,  0.0f,
             0.1002f,  0.2509f,  0.5009f,  1.0f,
             0.5505f,  0.7090f,  0.9099f,  1.0f,
             1.0000f,  1.2500f,  1.9900f,  0.0f  };
-
-    OCIO::ConstCPUProcessorRcPtr cpuProcessor; 
 
     {
         const std::vector<float> resImg
@@ -654,116 +941,146 @@ OIIO_ADD_TEST(CPUProcessor, with_one_1d_lut)
                  0.29089212f,  0.50935059f,  1.91091322f,  1,
                 64,           64,           64,            0 };
 
-        cpuProcessor
-            = ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                            OCIO::PIXEL_FORMAT_RGBA_F32,
-                            __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);
-
-        OIIO_CHECK_EQUAL(cpuProcessor->getInputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-        OIIO_CHECK_EQUAL(cpuProcessor->getOutputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-
-        // Validate that the two apply paths produce identical results.
-
-        std::vector<float> f_outImg2(NB_PIXELS * 4);
-        f_outImg2 = f_inImg;
-
-        OCIO::PackedImageDesc desc(&f_outImg2[0], NB_PIXELS, 1, 4);
-        OIIO_CHECK_NO_THROW(processor->apply(desc));
-
-        for(unsigned idx=0; idx<(NB_PIXELS*4); ++idx)
-        {
-            OIIO_CHECK_CLOSE(f_outImg2[idx], resImg[idx],  1e-7f);
-        }
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                     &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                     NB_PIXELS,
+                                                     1e-7f);
     }
 
-    // TODO: Will uncomment after implementation is complete.
-/*
     {
         const std::vector<uint16_t> resImg
             = {     0,     0,     0,     0,
                  2444,  6812, 16184, 65535,
-                19064, 33381, 65535, 65535,
+                19064, 33380, 65535, 65535,
                 65535, 65535, 65535,     0 };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                      OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS);    
+        ComputeValues<OCIO::BIT_DEPTH_F32,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                        NB_PIXELS);
     }
 
     const std::vector<uint16_t> i_inImg =
-        {    0,      8,    32,  0,
-            64,    128,   256,  0,
-           512,   1024,  2048,  0,
-          5120,  20480, 65535,  0  };
+        {    0,      8,    32,     0,
+            64,    128,   256,    32,
+           512,   1024,  2048,    64,
+          5120,  20480, 65535,   512 };
 
     {
         const std::vector<float> resImg
             = {  0,           0.00036166f, 0.00144666f, 0,
-                 0.00187417f, 0.00271759f, 0.00408672f, 0,
-                 0.00601041f, 0.00912247f, 0.01456576f, 0,
-                 0.03030112f, 0.13105739f, 64, 0 };
+                 0.00187417f, 0.00271759f, 0.00408672f, 0.00048828f,
+                 0.00601041f, 0.00912247f, 0.01456576f, 0.00097657f,
+                 0.03030112f, 0.13105739f, 64,          0.00781261f };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      OCIO::PIXEL_FORMAT_RGBA_F32,
-                      __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);    
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                     &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                     &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                     NB_PIXELS, 1e-7f);
     }
 
     {
         const std::vector<uint16_t> resImg
             = {     0,    24,    95,     0,
-                  123,   178,   268,     0,
-                  394,   598,   955,     0,
-                 1986,  8589, 65535,     0 };
+                  123,   178,   268,    32,
+                  394,   598,   955,    64,
+                 1986,  8589, 65535,   512 };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                        NB_PIXELS);
     }
 
     {
         const std::vector<uint16_t> resImg
             = {    95,    24,     0,     0,
-                  268,   178,   123,     0,
-                  955,   598,   394,     0,
-                65535,  8588,  1986,     0 };
+                  268,   178,   123,    32,
+                  955,   598,   394,    64,
+                65535,  8589,  1986,   512 };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                      OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &i_inImg[0], OCIO::CHANNEL_ORDERING_BGRA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                        NB_PIXELS);
     }
 
     {
+        const std::vector<uint16_t> resImg
+            = {    95,    24,     0,     0,
+                  268,   178,   123,    32,
+                  955,   598,   394,    64,
+                65535,  8589,  1986,   512 };
+
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                        NB_PIXELS);
+    }
+
+    {
+        const std::vector<uint16_t> resImg
+            = {    95,    24,     0,
+                  268,   178,   123,
+                  955,   598,   394,
+                65535,  8589,  1986 };
+
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_BGR,
+                                                        NB_PIXELS);
+    }
+
+    {
+        const std::vector<uint16_t> resImg
+            = {     0,    24,    95,     0,
+                  123,   178,   268,    32,
+                  394,   598,   955,    64,
+                 1986,  8589, 65535,    512 };
+
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &i_inImg[0], OCIO::CHANNEL_ORDERING_BGRA,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                        NB_PIXELS);
+    }
+
+    {
+        const std::vector<uint16_t> my_i_inImg =
+            {    0,      8,    32,
+                64,    128,   256,
+               512,   1024,  2048,
+              5120,  20480, 65535  };
+
         const std::vector<uint16_t> resImg
             = {    95,    24,     0,     0,
                   268,   178,   123,     0,
                   955,   598,   394,     0,
                 65535,  8589,  1986,     0 };
 
-        ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                      OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                      __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
+        ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                      OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                        &my_i_inImg[0], OCIO::CHANNEL_ORDERING_RGB,
+                                                        &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                        NB_PIXELS);
     }
-
-    {
-        const std::vector<uint16_t> resImg
-            = {     0,    24,    95,     0,
-                  123,   178,   268,     0,
-                  394,   598,   955,     0,
-                 1986,  8589, 65535,     0 };
-
-        ComputeValues<OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                      OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                      __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
-    }
-*/
 }
 
-OIIO_ADD_TEST(CPUProcessor, with_several_ops)
+OCIO_ADD_TEST(CPUProcessor, with_several_ops)
 {
-    // The unit test validates that pixel formats are correctly 
-    // processed when the op list starts or ends with a 1D LUT.
+    // The unit test validates that pixel formats are correctly
+    // processed when the op list starts or ends with a 1D LUT because it
+    // has a dedicated optimization when the input bit-depth is an integer type.
 
-    static const std::string SIMPLE_PROFILE =
+    const std::string SIMPLE_PROFILE =
         "ocio_profile_version: 2\n"
         "\n"
         "search_path: " + std::string(OCIO::getTestFilesDir()) + "\n"
@@ -802,21 +1119,19 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
         is.str(str);
 
         OCIO::ConstConfigRcPtr config;
-        OIIO_CHECK_NO_THROW(config = OCIO::Config::CreateFromStream(is));
-        OIIO_CHECK_NO_THROW(config->sanityCheck());
+        OCIO_CHECK_NO_THROW(config = OCIO::Config::CreateFromStream(is));
+        OCIO_CHECK_NO_THROW(config->sanityCheck());
 
-        OCIO::ConstProcessorRcPtr processor; 
-        OIIO_CHECK_NO_THROW(processor = config->getProcessor("cs1", "cs2"));
+        OCIO::ConstProcessorRcPtr processor;
+        OCIO_CHECK_NO_THROW(processor = config->getProcessor("cs1", "cs2"));
 
-        const unsigned NB_PIXELS = 4;
+        constexpr const unsigned NB_PIXELS = 4;
 
         const std::vector<float> f_inImg =
             {  -1.0000f, -0.8000f, -0.1000f,  0.0f,
                 0.1002f,  0.2509f,  0.5009f,  1.0f,
                 0.5505f,  0.7090f,  0.9099f,  1.0f,
                 1.0000f,  1.2500f,  1.9900f,  0.0f  };
-
-        OCIO::ConstCPUProcessorRcPtr cpuProcessor; 
 
         {
             const std::vector<float> resImg
@@ -825,109 +1140,102 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                      0.15488569f,  1.69210147f,  1.90666747f,  1.0f,
                      0.81575858f, 64.0f,        64.0f,         0.0f };
 
-            cpuProcessor 
-                = ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                                OCIO::PIXEL_FORMAT_RGBA_F32,
-                                __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);    
-
-            OIIO_CHECK_EQUAL(cpuProcessor->getInputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-            OIIO_CHECK_EQUAL(cpuProcessor->getOutputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-
-            // Validate that the two apply paths produce identical results.
-
-            std::vector<float> f_outImg2(NB_PIXELS * 4);
-            f_outImg2 = f_inImg;
-
-            OCIO::PackedImageDesc desc(&f_outImg2[0], NB_PIXELS, 1, 4);
-            OIIO_CHECK_NO_THROW(processor->apply(desc));
-
-            for(unsigned idx=0; idx<(NB_PIXELS*4); ++idx)
-            {
-                OIIO_CHECK_CLOSE(f_outImg2[idx], resImg[idx],  1e-7f);
-            }
+            ComputeValues<OCIO::BIT_DEPTH_F32,
+                          OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                         &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                         &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                         NB_PIXELS, 1e-7f);
         }
 
-    // TODO: Will uncomment after implementation is complete.
-/*
-        std::vector<uint16_t> i_outImg(NB_PIXELS * 4, 1);
         {
             const std::vector<uint16_t> resImg
                 = {     0,     0,     0,     0,
                         0, 13286, 16174, 65535,
                     10150, 65535, 65535, 65535,
-                    53460, 65535, 65535,     0 };
+                    53461, 65535, 65535,     0 };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                          OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                          __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS);    
+            ComputeValues<OCIO::BIT_DEPTH_F32,
+                          OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                            &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                            &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                            NB_PIXELS);
         }
 
         const std::vector<uint16_t> i_inImg =
             {    0,      8,    32,  0,
-                64,    128,   256,  0,
+                64,    128,   256,  65535,
                512,   1024,  2048,  0,
-              5120,  20480, 65535,  0  };
+              5120,  20480, 65535,  65535  };
 
         {
             const std::vector<float> resImg
                 = {  0.0f,  0.07789713f,  0.00088374f,  0.0f,
-                     0.0f,  0.07871927f,  0.00396248f,  0.0f,
+                     0.0f,  0.07871927f,  0.00396248f,  1.0f,
                      0.0f,  0.08474064f,  0.01450117f,  0.0f,
-                     0.0f,  0.24826171f, 56.39490891f,  0.0f };
+                     0.0f,  0.24826171f, 56.39490891f,  1.0f };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                          OCIO::PIXEL_FORMAT_RGBA_F32,
-                          __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);    
+            ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                          OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                         &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                         &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                         NB_PIXELS, 1e-7f);
         }
 
         {
             const std::vector<uint16_t> resImg
                 = {     0,  5105,    58,     0,
-                        0,  5159,   260,     0,
-                        0,  5554,   950,     0,
-                        0, 16270, 65535,     0 };
+                        0,  5159,   260,     65535,
+                        0,  5553,   950,     0,
+                        0, 16270, 65535,     65535 };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                          OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                          __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
+            ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                          OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                            &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                            &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                            NB_PIXELS);
         }
 
         {
             const std::vector<uint16_t> resImg
                 = {     0,  5105,     0,     0,
-                        0,  5159,   112,     0,
-                        0,  5554,   388,     0,
-                    53460, 16270,  1982,     0 };
+                        0,  5159,   112,     65535,
+                        0,  5553,   388,     0,
+                    53461, 16270,  1982,     65535 };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                          OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                          __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
+            ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                          OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                            &i_inImg[0], OCIO::CHANNEL_ORDERING_BGRA,
+                                                            &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                            NB_PIXELS);
         }
 
         {
             const std::vector<uint16_t> resImg
                 = {    58,  5105,     0,     0,
-                      260,  5159,     0,     0,
+                      260,  5159,     0,     65535,
                       950,  5553,     0,     0,
-                    65535, 16270,     0,     0 };
+                    65535, 16270,     0,     65535 };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                          OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                          __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
+            ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                          OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                            &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                            &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                            NB_PIXELS);
         }
 
         {
             const std::vector<uint16_t> resImg
                 = {     0,  5105,     0,     0,
-                      112,  5159,     0,     0,
+                      112,  5159,     0,     65535,
                       388,  5553,     0,     0,
-                     1982, 16270, 53461,     0 };
+                     1982, 16270, 53461,     65535 };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                          OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                          __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
+            ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                          OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                            &i_inImg[0], OCIO::CHANNEL_ORDERING_BGRA,
+                                                            &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                            NB_PIXELS);
         }
-*/
     }
 
     // Step 2: The 1D LUT is the first Op.
@@ -945,11 +1253,11 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
         is.str(str);
 
         OCIO::ConstConfigRcPtr config;
-        OIIO_CHECK_NO_THROW(config = OCIO::Config::CreateFromStream(is));
-        OIIO_CHECK_NO_THROW(config->sanityCheck());
+        OCIO_CHECK_NO_THROW(config = OCIO::Config::CreateFromStream(is));
+        OCIO_CHECK_NO_THROW(config->sanityCheck());
 
-        OCIO::ConstProcessorRcPtr processor; 
-        OIIO_CHECK_NO_THROW(processor = config->getProcessor("cs1", "cs2"));
+        OCIO::ConstProcessorRcPtr processor;
+        OCIO_CHECK_NO_THROW(processor = config->getProcessor("cs1", "cs2"));
 
         const unsigned NB_PIXELS = 4;
 
@@ -959,8 +1267,6 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                 0.5505f,  0.7090f,  0.9099f,  1.0f,
                 1.0000f,  1.2500f,  1.9900f,  0.0f  };
 
-        OCIO::ConstCPUProcessorRcPtr cpuProcessor; 
-
         {
             const std::vector<float> resImg
                 = { -0.18999999f,  0.18999999f, -0.00019000f,  0.0f,
@@ -968,28 +1274,13 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                      0.10089212f,  0.69935059f,  1.91072320f,  1.0f,
                     63.81000137f, 64.19000244f, 63.99980927f,  0.0f };
 
-            cpuProcessor
-                = ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                                OCIO::PIXEL_FORMAT_RGBA_F32,
-                                __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);    
-
-            OIIO_CHECK_EQUAL(cpuProcessor->getInputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-            OIIO_CHECK_EQUAL(cpuProcessor->getOutputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-
-            // Validate that the two apply paths produce identical results.
-
-            std::vector<float> f_outImg2(NB_PIXELS * 4);
-            f_outImg2 = f_inImg;
-
-            OCIO::PackedImageDesc desc(&f_outImg2[0], NB_PIXELS, 1, 4);
-            OIIO_CHECK_NO_THROW(processor->apply(desc));
-
-            for(unsigned idx=0; idx<(NB_PIXELS*4); ++idx)
-            {
-                OIIO_CHECK_CLOSE(f_outImg2[idx], resImg[idx],  1e-7f);
-            }
+            ComputeValues<OCIO::BIT_DEPTH_F32,
+                          OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                         &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                         &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                         NB_PIXELS, 1e-7f);
         }
-/*
+
         {
             const std::vector<uint16_t> resImg
                 = {     0, 12452,     0,     0,
@@ -997,9 +1288,11 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                      6612, 45832, 65535, 65535,
                     65535, 65535, 65535,     0 };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                          OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                          __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS);    
+            ComputeValues<OCIO::BIT_DEPTH_F32,
+                          OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                            &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                            &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                            NB_PIXELS);
         }
 
         const std::vector<uint16_t> i_inImg =
@@ -1014,9 +1307,11 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                     -0.18398958f, 0.19912247f,  0.01437576f,  0.0f,
                     -0.15969887f, 0.32105737f, 63.99980927f,  0.0f };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_RGBA_UINT16,
-                          OCIO::PIXEL_FORMAT_RGBA_F32,
-                          __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);    
+            ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                          OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                         &i_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                         &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                         NB_PIXELS, 1e-7f);
         }
 
         {
@@ -1026,11 +1321,12 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                       381, 13049,     0,     0,
                      1973, 21040, 65535,     0 };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                          OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                          __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);    
+            ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                          OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                            &i_inImg[0], OCIO::CHANNEL_ORDERING_BGRA,
+                                                            &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                            NB_PIXELS);
         }
-*/
     }
 
     // Step 3: The 1D LUT is the first and the last Op.
@@ -1050,11 +1346,11 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
         is.str(str);
 
         OCIO::ConstConfigRcPtr config;
-        OIIO_CHECK_NO_THROW(config = OCIO::Config::CreateFromStream(is));
-        OIIO_CHECK_NO_THROW(config->sanityCheck());
+        OCIO_CHECK_NO_THROW(config = OCIO::Config::CreateFromStream(is));
+        OCIO_CHECK_NO_THROW(config->sanityCheck());
 
-        OCIO::ConstProcessorRcPtr processor; 
-        OIIO_CHECK_NO_THROW(processor = config->getProcessor("cs1", "cs2"));
+        OCIO::ConstProcessorRcPtr processor;
+        OCIO_CHECK_NO_THROW(processor = config->getProcessor("cs1", "cs2"));
 
         const unsigned NB_PIXELS = 4;
 
@@ -1064,8 +1360,6 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                 0.5505f,  0.7090f,  0.9099f,  1.0f,
                 1.0000f,  1.2500f,  1.9900f,  0.0f  };
 
-        OCIO::ConstCPUProcessorRcPtr cpuProcessor; 
-
         {
             const std::vector<float> resImg
                 = { -0.79690927f, -0.06224250f, -0.42994320f,  0.0f,
@@ -1073,28 +1367,13 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                     -0.23451784f,  0.92250210f,  3.26448941f,  1.0f,
                      3.43709063f,  3.43709063f,  3.43709063f,  0.0f };
 
-            cpuProcessor
-                = ComputeValues<OCIO::PIXEL_FORMAT_RGBA_F32,
-                                OCIO::PIXEL_FORMAT_RGBA_F32,
-                                __LINE__>(processor, &f_inImg[0], &resImg[0], NB_PIXELS, 1e-7f);    
-
-            OIIO_CHECK_EQUAL(cpuProcessor->getInputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-            OIIO_CHECK_EQUAL(cpuProcessor->getOutputPixelFormat(), OCIO::PIXEL_FORMAT_RGBA_F32);
-
-            // Validate that the two apply paths produce identical results.
-
-            std::vector<float> f_outImg2(NB_PIXELS * 4);
-            f_outImg2 = f_inImg;
-
-            OCIO::PackedImageDesc desc(&f_outImg2[0], NB_PIXELS, 1, 4);
-            OIIO_CHECK_NO_THROW(processor->apply(desc));
-
-            for(unsigned idx=0; idx<(NB_PIXELS*4); ++idx)
-            {
-                OIIO_CHECK_CLOSE(f_outImg2[idx], resImg[idx],  1e-7f);
-            }
+            ComputeValues<OCIO::BIT_DEPTH_F32,
+                          OCIO::BIT_DEPTH_F32, __LINE__>(processor,
+                                                         &f_inImg[0], OCIO::CHANNEL_ORDERING_RGBA,
+                                                         &resImg[0],  OCIO::CHANNEL_ORDERING_RGBA,
+                                                         NB_PIXELS, 1e-7f);
         }
-/*
+
         const std::vector<uint16_t> i_inImg =
             {    0,      8,    32,  0,
                 64,    128,   256,  0,
@@ -1108,11 +1387,1160 @@ OIIO_ADD_TEST(CPUProcessor, with_several_ops)
                         0,     0,     0,     0,
                         0, 12526, 65535,     0 };
 
-            ComputeValues<OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                          OCIO::PIXEL_FORMAT_BGRA_UINT16,
-                          __LINE__>(processor, &i_inImg[0], &resImg[0], NB_PIXELS);
+            ComputeValues<OCIO::BIT_DEPTH_UINT16,
+                          OCIO::BIT_DEPTH_UINT16, __LINE__>(processor,
+                                                            &i_inImg[0], OCIO::CHANNEL_ORDERING_BGRA,
+                                                            &resImg[0],  OCIO::CHANNEL_ORDERING_BGRA,
+                                                            NB_PIXELS);
         }
-*/
+    }
+}
+
+OCIO_ADD_TEST(CPUProcessor, image_desc)
+{
+    // The tests validate the image description types when using the same buffer image.
+
+    const std::string SIMPLE_PROFILE =
+        "ocio_profile_version: 2\n"
+        "\n"
+        "search_path: " + std::string(OCIO::getTestFilesDir()) + "\n"
+        "strictparsing: true\n"
+        "luma: [0.2126, 0.7152, 0.0722]\n"
+        "\n"
+        "roles:\n"
+        "  default: cs1\n"
+        "  scene_linear: cs2\n"
+        "\n"
+        "displays:\n"
+        "  sRGB:\n"
+        "    - !<View> {name: Raw, colorspace: cs1}\n"
+        "\n"
+        "colorspaces:\n"
+        "  - !<ColorSpace>\n"
+        "    name: cs1\n"
+        "    allocation: uniform\n"
+        "\n"
+        "  - !<ColorSpace>\n"
+        "    name: cs2\n"
+        "    allocation: uniform\n";
+
+    const std::string strEnd =
+        "    from_reference: !<GroupTransform>\n"
+        "      children:\n"
+        "        - !<MatrixTransform> { offset: [-0.19, 0.19, -0.00019, 0.5] }\n"
+        "        - !<FileTransform>   { src: lut1d_5.spi1d, interpolation: linear }\n";
+
+    const std::string str = SIMPLE_PROFILE + strEnd;
+
+    std::istringstream is;
+    is.str(str);
+
+    OCIO::ConstConfigRcPtr config;
+    OCIO_CHECK_NO_THROW(config = OCIO::Config::CreateFromStream(is));
+    OCIO_CHECK_NO_THROW(config->sanityCheck());
+
+    OCIO::ConstProcessorRcPtr processor;
+    OCIO_CHECK_NO_THROW(processor = config->getProcessor("cs1", "cs2"));
+
+    const std::vector<float> f_rInImg =
+        {  -1.0000f,
+            0.1002f,
+            0.5505f,
+            1.0000f,  };
+
+    const std::vector<float> f_gInImg =
+        {            -0.8000f,
+                      0.2509f,
+                      0.7090f,
+                      1.2500f  };
+
+    const std::vector<float> f_bInImg =
+        {                       -0.1000f,
+                                 0.5009f,
+                                 0.9099f,
+                                 1.9900f  };
+
+    const std::vector<float> f_aInImg =
+        {                                   0.0f,
+                                            1.0f,
+                                            0.5f,
+                                            0.0f  };
+
+    const std::vector<float> f_rOutImg
+        = {  0.0f,
+             0.0f,
+             0.15488569f,
+             0.81575858f };
+
+    const std::vector<float> f_gOutImg
+        = {                0.0f,
+                           0.20273837f,
+                           1.69210147f,
+                          64.0f };
+
+    const std::vector<float> f_bOutImg
+        = {                              0.0f,
+                                         0.24680146f,
+                                         1.90666747f,
+                                        64.0f };
+
+    const std::vector<float> f_aOutImg
+        = {                                            0.5f,
+                                                       1.5f,
+                                                       1.0f,
+                                                       0.5f };
+
+    {
+        // Packed Image Description with RGBA image.
+
+        std::vector<float> img =
+            {  f_rInImg[0], f_gInImg[0], f_bInImg[0], f_aInImg[0],
+               f_rInImg[1], f_gInImg[1], f_bInImg[1], f_aInImg[1],
+               f_rInImg[2], f_gInImg[2], f_bInImg[2], f_aInImg[2],
+               f_rInImg[3], f_gInImg[3], f_bInImg[3], f_aInImg[3] };
+
+        const std::vector<float> res
+            {  f_rOutImg[0], f_gOutImg[0], f_bOutImg[0], f_aOutImg[0],
+               f_rOutImg[1], f_gOutImg[1], f_bOutImg[1], f_aOutImg[1],
+               f_rOutImg[2], f_gOutImg[2], f_bOutImg[2], f_aOutImg[2],
+               f_rOutImg[3], f_gOutImg[3], f_bOutImg[3], f_aOutImg[3] };
+
+        OCIO::ConstCPUProcessorRcPtr cpu;
+        OCIO_CHECK_NO_THROW(cpu = processor->getDefaultCPUProcessor());
+
+        OCIO::PackedImageDesc desc(&img[0], 2, 2, 4);
+        OCIO_CHECK_NO_THROW(cpu->apply(desc));
+
+        for(size_t idx=0; idx<img.size(); ++idx)
+        {
+            OCIO_CHECK_CLOSE(img[idx], res[idx], 1e-7f);
+        }
+    }
+
+    {
+        // Packed Image Description with RGB image.
+
+        std::vector<float> img =
+            {  f_rInImg[0], f_gInImg[0], f_bInImg[0],
+               f_rInImg[1], f_gInImg[1], f_bInImg[1],
+               f_rInImg[2], f_gInImg[2], f_bInImg[2],
+               f_rInImg[3], f_gInImg[3], f_bInImg[3] };
+
+        const std::vector<float> res
+            {  f_rOutImg[0], f_gOutImg[0], f_bOutImg[0],
+               f_rOutImg[1], f_gOutImg[1], f_bOutImg[1],
+               f_rOutImg[2], f_gOutImg[2], f_bOutImg[2],
+               f_rOutImg[3], f_gOutImg[3], f_bOutImg[3] };
+
+        OCIO::ConstCPUProcessorRcPtr cpu;
+        OCIO_CHECK_NO_THROW(cpu = processor->getDefaultCPUProcessor());
+
+        OCIO::PackedImageDesc desc(&img[0], 4, 1, 3);
+        OCIO_CHECK_NO_THROW(cpu->apply(desc));
+
+        for(size_t idx=0; idx<img.size(); ++idx)
+        {
+            OCIO_CHECK_CLOSE(img[idx], res[idx], 1e-7f);
+        }
+    }
+
+    {
+        // Planar Image Description with R/G/B/A.
+
+        std::vector<float> imgRed   = f_rInImg;
+        std::vector<float> imgGreen = f_gInImg;
+        std::vector<float> imgBlue  = f_bInImg;
+        std::vector<float> imgAlpha = f_aInImg;
+
+        OCIO::ConstCPUProcessorRcPtr cpu;
+        OCIO_CHECK_NO_THROW(cpu = processor->getDefaultCPUProcessor());
+
+        OCIO::PlanarImageDesc desc(&imgRed[0], &imgGreen[0], &imgBlue[0], &imgAlpha[0], 2, 2);
+        OCIO_CHECK_NO_THROW(cpu->apply(desc));
+
+        for(size_t idx=0; idx<imgRed.size(); ++idx)
+        {
+            OCIO_CHECK_CLOSE(imgRed[idx],   f_rOutImg[idx], 1e-7f);
+            OCIO_CHECK_CLOSE(imgGreen[idx], f_gOutImg[idx], 1e-7f);
+            OCIO_CHECK_CLOSE(imgBlue[idx],  f_bOutImg[idx], 1e-7f);
+            OCIO_CHECK_CLOSE(imgAlpha[idx], f_aOutImg[idx], 1e-7f);
+        }
+    }
+
+    {
+        // Planar Image Description with R/G/B.
+
+        std::vector<float> imgRed   = f_rInImg;
+        std::vector<float> imgGreen = f_gInImg;
+        std::vector<float> imgBlue  = f_bInImg;
+
+        OCIO::ConstCPUProcessorRcPtr cpu;
+        OCIO_CHECK_NO_THROW(cpu = processor->getDefaultCPUProcessor());
+
+        OCIO::PlanarImageDesc desc(&imgRed[0], &imgGreen[0], &imgBlue[0], nullptr, 1, 4);
+        OCIO_CHECK_NO_THROW(cpu->apply(desc));
+
+        for(size_t idx=0; idx<imgRed.size(); ++idx)
+        {
+            OCIO_CHECK_CLOSE(imgRed[idx],   f_rOutImg[idx], 1e-7f);
+            OCIO_CHECK_CLOSE(imgGreen[idx], f_gOutImg[idx], 1e-7f);
+            OCIO_CHECK_CLOSE(imgBlue[idx],  f_bOutImg[idx], 1e-7f);
+        }
+    }
+}
+
+namespace
+{
+
+constexpr const unsigned NB_PIXELS = 6;
+
+std::vector<float> inImgR =
+    {  -1.000012f,
+       -0.500012f,
+        0.100012f,
+        0.600012f,
+        1.102312f,
+        1.700012f  };
+
+std::vector<float> inImgG =
+    {              -0.800012f,
+                   -0.300012f,
+                    0.250012f,
+                    0.800012f,
+                    1.204512f,
+                    1.800012f };
+
+std::vector<float> inImgB =
+    {                          -0.600012f,
+                               -0.100012f,
+                                0.450012f,
+                                0.900012f,
+                                1.508912f,
+                                1.990012f };
+
+std::vector<float> inImgA =
+    {                                       0.005005f,
+                                            0.405005f,
+                                            0.905005f,
+                                            0.005005f,
+                                            1.005005f,
+                                            0.095005f  };
+
+std::vector<float> inImg =
+    { inImgR[0], inImgG[0], inImgB[0], inImgA[0],
+      inImgR[1], inImgG[1], inImgB[1], inImgA[1],
+      inImgR[2], inImgG[2], inImgB[2], inImgA[2],
+      inImgR[3], inImgG[3], inImgB[3], inImgA[3],
+      inImgR[4], inImgG[4], inImgB[4], inImgA[4],
+      inImgR[5], inImgG[5], inImgB[5], inImgA[5] };
+
+const std::vector<float> resImgR =
+    {  0.4001879692f,
+       0.9001880288f,
+       1.500211954f,
+       2.000211954f,
+       2.502511978f,
+       3.100212097f };
+
+const std::vector<float> resImgG =
+    {                 -0.3995119929f,
+                       0.1004880071f,
+                       0.6505119801f,
+                       1.200511932f,
+                       1.60501194f,
+                       2.200511932f };
+
+const std::vector<float> resImgB =
+    {                                 0.2006880045f,
+                                      0.7006880045f,
+                                      1.250712037f,
+                                      1.700711966f,
+                                      2.309612036f,
+                                      2.790712118f };
+
+const std::vector<float> resImgA =
+    {                                                0.5057050f,
+                                                     0.9057050f,
+                                                     1.4057050f,
+                                                     0.5057050f,
+                                                     1.5057050f,
+                                                     0.5957050f  };
+
+const std::vector<float> resImg =
+    { resImgR[0], resImgG[0], resImgB[0], resImgA[0],
+      resImgR[1], resImgG[1], resImgB[1], resImgA[1],
+      resImgR[2], resImgG[2], resImgB[2], resImgA[2],
+      resImgR[3], resImgG[3], resImgB[3], resImgA[3],
+      resImgR[4], resImgG[4], resImgB[4], resImgA[4],
+      resImgR[5], resImgG[5], resImgB[5], resImgA[5] };
+
+
+OCIO::ConstCPUProcessorRcPtr BuildCPUProcessor(OCIO::TransformDirection dir)
+{
+    OCIO::ConfigRcPtr config = OCIO::Config::Create();
+
+    OCIO::MatrixTransformRcPtr transform = OCIO::MatrixTransform::Create();
+    const float offset4[4] = { 1.4002f, 0.4005f, 0.8007f, 0.5007f };
+    transform->setOffset(offset4);
+    transform->setDirection(dir);
+
+    OCIO::ConstProcessorRcPtr processor = config->getProcessor(transform);
+    return processor->getDefaultCPUProcessor();
+}
+
+void Validate(const OCIO::PackedImageDesc & imgDesc, unsigned lineNo)
+{
+    const float * outImg = reinterpret_cast<float*>(imgDesc.getData());
+    for(size_t pxl=0; pxl<NB_PIXELS; ++pxl)
+    {
+        OCIO_CHECK_CLOSE_FROM(outImg[4*pxl+0], resImg[4*pxl+0], 1e-7f, lineNo);
+        OCIO_CHECK_CLOSE_FROM(outImg[4*pxl+1], resImg[4*pxl+1], 1e-7f, lineNo);
+        OCIO_CHECK_CLOSE_FROM(outImg[4*pxl+2], resImg[4*pxl+2], 1e-7f, lineNo);
+        OCIO_CHECK_CLOSE_FROM(outImg[4*pxl+3], resImg[4*pxl+3], 1e-7f, lineNo);
+    }
+}
+
+void Process(const OCIO::ConstCPUProcessorRcPtr & cpuProcessor,
+             const OCIO::PackedImageDesc & srcImgDesc,
+             OCIO::PackedImageDesc & dstImgDesc,
+             unsigned lineNo)
+{
+    OCIO_CHECK_NO_THROW_FROM(cpuProcessor->apply(srcImgDesc, dstImgDesc), lineNo);
+    Validate(dstImgDesc, lineNo);
+}
+
+void Process(const OCIO::ConstCPUProcessorRcPtr & cpuProcessor,
+             OCIO::PackedImageDesc & imgDesc,
+             unsigned lineNo)
+{
+    OCIO_CHECK_NO_THROW_FROM(cpuProcessor->apply(imgDesc), lineNo);
+    Validate(imgDesc, lineNo);
+}
+
+void Process(const OCIO::ConstCPUProcessorRcPtr & cpuProcessor,
+             const OCIO::PlanarImageDesc & srcImgDesc,
+             OCIO::PlanarImageDesc & dstImgDesc,
+             unsigned lineNo)
+{
+    OCIO_CHECK_NO_THROW_FROM(cpuProcessor->apply(srcImgDesc, dstImgDesc), lineNo);
+
+    const float * outImgR = reinterpret_cast<float*>(dstImgDesc.getRData());
+    const float * outImgG = reinterpret_cast<float*>(dstImgDesc.getGData());
+    const float * outImgB = reinterpret_cast<float*>(dstImgDesc.getBData());
+    const float * outImgA = reinterpret_cast<float*>(dstImgDesc.getAData());
+
+    for(size_t pxl=0; pxl<NB_PIXELS; ++pxl)
+    {
+        OCIO_CHECK_CLOSE_FROM(outImgR[pxl], resImg[4*pxl+0], 1e-7f, lineNo);
+        OCIO_CHECK_CLOSE_FROM(outImgG[pxl], resImg[4*pxl+1], 1e-7f, lineNo);
+        OCIO_CHECK_CLOSE_FROM(outImgB[pxl], resImg[4*pxl+2], 1e-7f, lineNo);
+        if(outImgA)
+        {
+            OCIO_CHECK_CLOSE_FROM(outImgA[pxl], resImg[4*pxl+3], 1e-7f, lineNo);
+        }
+    }
+}
+
+} // anon
+
+
+OCIO_ADD_TEST(CPUProcessor, planar_vs_packed)
+{
+    // The unit test validates different types for input and output imageDesc.
+
+    OCIO::ConstCPUProcessorRcPtr cpuProcessor;
+    OCIO_CHECK_NO_THROW(cpuProcessor = BuildCPUProcessor(OCIO::TRANSFORM_DIR_FORWARD));
+
+    // 1. Process from Packed to Planar Image Desc using the forward transform.
+
+    OCIO::PackedImageDesc srcImgDesc((void*)&inImg[0], NB_PIXELS, 1, 4);
+
+    std::vector<float> outR(NB_PIXELS), outG(NB_PIXELS), outB(NB_PIXELS), outA(NB_PIXELS);
+    OCIO::PlanarImageDesc dstImgDesc((void*)&outR[0], (void*)&outG[0],
+                                     (void*)&outB[0], (void*)&outA[0],
+                                     NB_PIXELS, 1);
+
+    OCIO_CHECK_NO_THROW(cpuProcessor->apply(srcImgDesc, dstImgDesc));
+
+    for(size_t idx=0; idx<NB_PIXELS; ++idx)
+    {
+        OCIO_CHECK_CLOSE(outR[idx], resImg[4*idx+0], 1e-7f);
+        OCIO_CHECK_CLOSE(outG[idx], resImg[4*idx+1], 1e-7f);
+        OCIO_CHECK_CLOSE(outB[idx], resImg[4*idx+2], 1e-7f);
+        OCIO_CHECK_CLOSE(outA[idx], resImg[4*idx+3], 1e-7f);
+    }
+
+    // 2. Process from Planar to Packed Image Desc using the inverse transform.
+
+    OCIO_CHECK_NO_THROW(cpuProcessor = BuildCPUProcessor(OCIO::TRANSFORM_DIR_INVERSE));
+
+    std::vector<float> outImg(NB_PIXELS*4, -1.0f);
+    OCIO::PackedImageDesc dstImgDesc2((void*)&outImg[0], NB_PIXELS, 1, 4);
+
+    OCIO_CHECK_NO_THROW(cpuProcessor->apply(dstImgDesc, dstImgDesc2));
+
+    for(size_t idx=0; idx<(NB_PIXELS*4); ++idx)
+    {
+        OCIO_CHECK_CLOSE(outImg[idx], inImg[idx], 1e-6f);
+    }
+}
+
+OCIO_ADD_TEST(CPUProcessor, scanline_helper_packed)
+{
+    // Test the packed image description.
+
+    OCIO::ConstCPUProcessorRcPtr cpuProcessor;
+    OCIO_CHECK_NO_THROW(cpuProcessor = BuildCPUProcessor(OCIO::TRANSFORM_DIR_FORWARD));
+
+    std::vector<float> outImg(NB_PIXELS*4);
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], NB_PIXELS, 1, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], NB_PIXELS, 1, 4);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 1, NB_PIXELS, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 1, NB_PIXELS, 4);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 2, 3, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 2, 3, 4);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 3, 2, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 3, 2, 4);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 2, 3, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 2, 3,
+                                         OCIO::CHANNEL_ORDERING_RGBA,
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         OCIO::AutoStride,
+                                         OCIO::AutoStride);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 2, 3, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 2, 3,
+                                         OCIO::CHANNEL_ORDERING_RGBA,
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         4*sizeof(float),
+                                         OCIO::AutoStride);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 2, 3, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 2, 3,
+                                         4, // Number of channels
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         4*sizeof(float),
+                                         OCIO::AutoStride);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 2, 3, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 2, 3,
+                                         4, // Number of channels
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         4*sizeof(float),
+                                         OCIO::AutoStride);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 2, 3, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 2, 3,
+                                         4, // Number of channels
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         4*sizeof(float),
+                                         2*4*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0], 2, 3, 4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 2, 3,
+                                         4, // Number of channels
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         OCIO::AutoStride,
+                                         2*4*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+}
+
+OCIO_ADD_TEST(CPUProcessor, scanline_helper_packed_one_buffer)
+{
+    // Now that the previous unit test covers all cases with different buffers,
+    // let's test some cases using the same in and out buffer.
+
+    OCIO::ConstCPUProcessorRcPtr cpuProcessor;
+    OCIO_CHECK_NO_THROW(cpuProcessor = BuildCPUProcessor(OCIO::TRANSFORM_DIR_FORWARD));
+
+    std::vector<float> processingImg(NB_PIXELS*4);
+
+    {
+        processingImg = inImg;
+
+        OCIO::PackedImageDesc imgDesc(&processingImg[0], NB_PIXELS, 1, 4);
+
+        Process(cpuProcessor, imgDesc, __LINE__);
+    }
+
+    {
+        processingImg = inImg;
+
+        OCIO::PackedImageDesc imgDesc(&processingImg[0], 3, 2, 4);
+
+        Process(cpuProcessor, imgDesc, __LINE__);
+    }
+
+    {
+        processingImg = inImg;
+
+        OCIO::PackedImageDesc imgDesc(&processingImg[0], 1, NB_PIXELS, 4);
+
+        Process(cpuProcessor, imgDesc, __LINE__);
+    }
+}
+
+OCIO_ADD_TEST(CPUProcessor, scanline_helper_planar)
+{
+    // Test the planar image description.
+
+    OCIO::ConstCPUProcessorRcPtr cpuProcessor;
+    OCIO_CHECK_NO_THROW(cpuProcessor = BuildCPUProcessor(OCIO::TRANSFORM_DIR_FORWARD));
+
+    std::vector<float> outImgR(NB_PIXELS);
+    std::vector<float> outImgG(NB_PIXELS);
+    std::vector<float> outImgB(NB_PIXELS);
+    std::vector<float> outImgA(NB_PIXELS);
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0], NB_PIXELS, 1);
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0], NB_PIXELS, 1);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0], NB_PIXELS, 1);
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0], NB_PIXELS, 1);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0], NB_PIXELS, 1);
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0], NB_PIXELS, 1);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0], 3, 2);
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0], 3, 2);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0], 2, 3);
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0],
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         OCIO::AutoStride);
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0], 2, 3);
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0],
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         2*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0], 2, 3);
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0],
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         2*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0],
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         2*sizeof(float));
+
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0],
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         2*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0],
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         2*sizeof(float));
+
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], &outImgA[0],
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         2*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], &inImgA[0],
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         2*sizeof(float));
+
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], nullptr,
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         2*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        OCIO::PlanarImageDesc srcImgDesc(&inImgR[0], &inImgG[0], &inImgB[0], nullptr,
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         2*sizeof(float));
+
+        OCIO::PlanarImageDesc dstImgDesc(&outImgR[0], &outImgG[0], &outImgB[0], nullptr,
+                                         2, 3,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         2*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+}
+
+OCIO_ADD_TEST(CPUProcessor, scanline_helper_tile)
+{
+    // Process tiles.
+
+    OCIO::ConstCPUProcessorRcPtr cpuProcessor;
+    OCIO_CHECK_NO_THROW(cpuProcessor = BuildCPUProcessor(OCIO::TRANSFORM_DIR_FORWARD));
+
+    std::vector<float> outImg(NB_PIXELS*4);
+
+    {
+        // Pixels are { 1, 2, 3,
+        //              4, 5, 6  }
+
+        // Copy the 1st pixel which should be untouched.
+        outImg[(0 * 4) + 0] = resImg[(0 * 4) + 0];
+        outImg[(0 * 4) + 1] = resImg[(0 * 4) + 1];
+        outImg[(0 * 4) + 2] = resImg[(0 * 4) + 2];
+        outImg[(0 * 4) + 3] = resImg[(0 * 4) + 3];
+        // Copy the 4th pixel which should be untouched.
+        outImg[(3 * 4) + 0] = resImg[(3 * 4) + 0];
+        outImg[(3 * 4) + 1] = resImg[(3 * 4) + 1];
+        outImg[(3 * 4) + 2] = resImg[(3 * 4) + 2];
+        outImg[(3 * 4) + 3] = resImg[(3 * 4) + 3];
+
+        // Only process the pixels = { 2, 3,
+        //                             5, 6  }
+
+        OCIO::PackedImageDesc srcImgDesc(&inImg[4],
+                                         2, 2, 4,   // width=2, height=2, and nchannels=4
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         4*sizeof(float),
+                                         3*4*sizeof(float));
+
+        OCIO::PackedImageDesc dstImgDesc(&outImg[4],
+                                         2, 2, 4,   // width=2, height=2, and nchannels=4
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         4*sizeof(float),
+                                         3*4*sizeof(float));
+
+        OCIO_CHECK_NO_THROW(cpuProcessor->apply(srcImgDesc, dstImgDesc));
+
+        for(size_t pxl=0; pxl<NB_PIXELS; ++pxl)
+        {
+            OCIO_CHECK_CLOSE(outImg[4*pxl+0], resImg[4*pxl+0], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[4*pxl+1], resImg[4*pxl+1], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[4*pxl+2], resImg[4*pxl+2], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[4*pxl+3], resImg[4*pxl+3], 1e-7f);
+        }
+    }
+
+    {
+        // Pixels are { 1, 2, 3,
+        //              4, 5, 6  }
+
+        // Copy the 3rd pixel which should be untouched.
+        outImg[(2 * 4) + 0] = resImg[(2 * 4) + 0];
+        outImg[(2 * 4) + 1] = resImg[(2 * 4) + 1];
+        outImg[(2 * 4) + 2] = resImg[(2 * 4) + 2];
+        outImg[(2 * 4) + 3] = resImg[(2 * 4) + 3];
+        // Copy the 6th pixel which should be untouched.
+        outImg[(5 * 4) + 0] = resImg[(5 * 4) + 0];
+        outImg[(5 * 4) + 1] = resImg[(5 * 4) + 1];
+        outImg[(5 * 4) + 2] = resImg[(5 * 4) + 2];
+        outImg[(5 * 4) + 3] = resImg[(5 * 4) + 3];
+
+        // Only process the pixels = { 1, 2,
+        //                             4, 5 }
+
+        OCIO::PackedImageDesc srcImgDesc(&inImg[0],
+                                         2, 2, 4,   // width=2, height=2, and nchannels=4
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         4*sizeof(float),
+                                         3*4*sizeof(float));
+
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0],
+                                         2, 2, 4,   // width=2, height=2, and nchannels=4
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         4*sizeof(float),
+                                         3*4*sizeof(float));
+
+        Process(cpuProcessor, srcImgDesc, dstImgDesc, __LINE__);
+    }
+
+    {
+        // Pixels are { 1, 2, 3,
+        //              4, 5, 6  }
+
+        outImg = inImg; // Use an in-place image buffer.
+
+        // Copy the 3rd pixel which should be untouched.
+        outImg[(2 * 4) + 0] = resImg[(2 * 4) + 0];
+        outImg[(2 * 4) + 1] = resImg[(2 * 4) + 1];
+        outImg[(2 * 4) + 2] = resImg[(2 * 4) + 2];
+        outImg[(2 * 4) + 3] = resImg[(2 * 4) + 3];
+        // Copy the 6th pixel which should be untouched.
+        outImg[(5 * 4) + 0] = resImg[(5 * 4) + 0];
+        outImg[(5 * 4) + 1] = resImg[(5 * 4) + 1];
+        outImg[(5 * 4) + 2] = resImg[(5 * 4) + 2];
+        outImg[(5 * 4) + 3] = resImg[(5 * 4) + 3];
+
+        // Only process the pixels = { 1, 2,
+        //                             4, 5 }
+
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0],
+                                         2, 2, 4,   // width=2, height=2, and nchannels=4
+                                         OCIO::BIT_DEPTH_F32,
+                                         sizeof(float),
+                                         4*sizeof(float),
+                                         3*4*sizeof(float));
+
+        Process(cpuProcessor, dstImgDesc, dstImgDesc, __LINE__);
+    }
+
+}
+
+
+OCIO_ADD_TEST(CPUProcessor, custom_scanlines)
+{
+    // Cases testing custom xStrideBytes and yStrideBytes values.
+
+    const float magicNumber = 12345.6789f;
+
+    OCIO::ConstCPUProcessorRcPtr cpuProcessor;
+    OCIO_CHECK_NO_THROW(cpuProcessor = BuildCPUProcessor(OCIO::TRANSFORM_DIR_FORWARD));
+
+    {
+        // Pixels are { RGBA, RGBA, RGBA, x,
+        //              RGBA, RGBA, RGBA, x  } where x is not a color channel.
+
+        std::vector<float> img
+            = { inImg[ 0], inImg[ 1], inImg[ 2], inImg[ 3],
+                inImg[ 4], inImg[ 5], inImg[ 6], inImg[ 7],
+                inImg[ 8], inImg[ 9], inImg[10], inImg[11],
+                magicNumber,
+                inImg[12], inImg[13], inImg[14], inImg[15],
+                inImg[16], inImg[17], inImg[18], inImg[19],
+                inImg[20], inImg[21], inImg[22], inImg[23],
+                magicNumber };
+
+        OCIO::PackedImageDesc srcImgDesc(&img[0],
+                                         3, 2, 4,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         OCIO::AutoStride,
+                                         // Bytes to the next line.
+                                         3*4*sizeof(float)+sizeof(float));
+
+        std::vector<float> outImg(NB_PIXELS*4);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 3, 2, 4);
+
+        OCIO_CHECK_NO_THROW(cpuProcessor->apply(srcImgDesc, dstImgDesc));
+
+        for(size_t pxl=0; pxl<NB_PIXELS; ++pxl)
+        {
+            OCIO_CHECK_CLOSE(outImg[4*pxl+0], resImg[4*pxl+0], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[4*pxl+1], resImg[4*pxl+1], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[4*pxl+2], resImg[4*pxl+2], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[4*pxl+3], resImg[4*pxl+3], 1e-7f);
+        }
+    }
+
+    {
+        // Pixels are { RxGxBxAx, RxGxBxAx, RxGxBxAx,
+        //              RxGxBxAx, RxGxBxAx, RxGxBxAx  } where x is not a color channel.
+
+        std::vector<float> img
+            = { inImg[ 0], magicNumber, inImg[ 1], magicNumber, inImg[ 2], magicNumber, inImg[ 3], magicNumber,
+                inImg[ 4], magicNumber, inImg[ 5], magicNumber, inImg[ 6], magicNumber, inImg[ 7], magicNumber,
+                inImg[ 8], magicNumber, inImg[ 9], magicNumber, inImg[10], magicNumber, inImg[11], magicNumber,
+                inImg[12], magicNumber, inImg[13], magicNumber, inImg[14], magicNumber, inImg[15], magicNumber,
+                inImg[16], magicNumber, inImg[17], magicNumber, inImg[18], magicNumber, inImg[19], magicNumber,
+                inImg[20], magicNumber, inImg[21], magicNumber, inImg[22], magicNumber, inImg[23], magicNumber };
+
+        OCIO::PackedImageDesc srcImgDesc(&img[0],  3, 2, 4,
+                                         OCIO::BIT_DEPTH_F32,
+                                         // Bytes to the next channel.
+                                         sizeof(float)+sizeof(float),
+                                         OCIO::AutoStride,
+                                         OCIO::AutoStride);
+
+        std::vector<float> outImg(NB_PIXELS*3);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 3, 2, 3);
+
+        OCIO_CHECK_NO_THROW(cpuProcessor->apply(srcImgDesc, dstImgDesc));
+
+        for(size_t pxl=0; pxl<NB_PIXELS; ++pxl)
+        {
+            OCIO_CHECK_CLOSE(outImg[3*pxl+0], resImg[4*pxl+0], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[3*pxl+1], resImg[4*pxl+1], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[3*pxl+2], resImg[4*pxl+2], 1e-7f);
+        }
+    }
+
+    {
+        // Pixels are { RGBAx, RGBAx, RGBAx,
+        //              RGBAx, RGBAx, RGBAx  } where x is not a color channel.
+
+        std::vector<float> img
+            = { inImg[ 0], inImg[ 1], inImg[ 2], inImg[ 3], magicNumber,
+                inImg[ 4], inImg[ 5], inImg[ 6], inImg[ 7], magicNumber,
+                inImg[ 8], inImg[ 9], inImg[10], inImg[11], magicNumber,
+                inImg[12], inImg[13], inImg[14], inImg[15], magicNumber,
+                inImg[16], inImg[17], inImg[18], inImg[19], magicNumber,
+                inImg[20], inImg[21], inImg[22], inImg[23], magicNumber };
+
+        OCIO::PackedImageDesc srcImgDesc(&img[0], 3, 2, 4,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         // Bytes to the next pixel.
+                                         4*sizeof(float)+sizeof(float),
+                                         OCIO::AutoStride);
+
+        std::vector<float> outImg(NB_PIXELS*3);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 3, 2, 3);
+
+        OCIO_CHECK_NO_THROW(cpuProcessor->apply(srcImgDesc, dstImgDesc));
+
+        for(size_t pxl=0; pxl<NB_PIXELS; ++pxl)
+        {
+            OCIO_CHECK_CLOSE(outImg[3*pxl+0], resImg[4*pxl+0], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[3*pxl+1], resImg[4*pxl+1], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[3*pxl+2], resImg[4*pxl+2], 1e-7f);
+        }
+    }
+
+    {
+        // Pixels are { RGBAx, RGBAx, RGBAx, x
+        //              RGBAx, RGBAx, RGBAx, x  } where x is not a color channel.
+
+        std::vector<float> img
+            = { inImg[ 0], inImg[ 1], inImg[ 2], inImg[ 3], magicNumber,
+                inImg[ 4], inImg[ 5], inImg[ 6], inImg[ 7], magicNumber,
+                inImg[ 8], inImg[ 9], inImg[10], inImg[11], magicNumber,
+                magicNumber,
+                inImg[12], inImg[13], inImg[14], inImg[15], magicNumber,
+                inImg[16], inImg[17], inImg[18], inImg[19], magicNumber,
+                inImg[20], inImg[21], inImg[22], inImg[23], magicNumber,
+                magicNumber };
+
+        OCIO::PackedImageDesc srcImgDesc(&img[0],
+                                         3, 2, 4,
+                                         OCIO::BIT_DEPTH_F32,
+                                         OCIO::AutoStride,
+                                         // Bytes to the next pixel.
+                                         4*sizeof(float)+sizeof(float),
+                                         // Bytes to the next line.
+                                         3*(4*sizeof(float)+sizeof(float))+sizeof(float));
+
+        std::vector<float> outImg(NB_PIXELS*3);
+        OCIO::PackedImageDesc dstImgDesc(&outImg[0], 3, 2, 3);
+
+        OCIO_CHECK_NO_THROW(cpuProcessor->apply(srcImgDesc, dstImgDesc));
+
+        for(size_t pxl=0; pxl<NB_PIXELS; ++pxl)
+        {
+            OCIO_CHECK_CLOSE(outImg[3*pxl+0], resImg[4*pxl+0], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[3*pxl+1], resImg[4*pxl+1], 1e-7f);
+            OCIO_CHECK_CLOSE(outImg[3*pxl+2], resImg[4*pxl+2], 1e-7f);
+        }
+    }
+
+}
+
+OCIO_ADD_TEST(CPUProcessor, one_pixel)
+{
+    OCIO::ConstCPUProcessorRcPtr cpuProcessor;
+    OCIO_CHECK_NO_THROW(cpuProcessor = BuildCPUProcessor(OCIO::TRANSFORM_DIR_FORWARD));
+
+    // The CPU Processor only includes a Matrix with offset:
+    //   const float offset4[4] = { 1.4002f, 0.4005f, 0.8007f, 0.5007f };
+
+    {
+        float pixel[4]{ 0.1f, 0.3f, 0.9f, 1.0f };
+
+        OCIO_CHECK_NO_THROW(cpuProcessor->applyRGBA(pixel));
+
+        OCIO_CHECK_EQUAL(pixel[0], 0.1f + 1.4002f);
+        OCIO_CHECK_EQUAL(pixel[1], 0.3f + 0.4005f);
+        OCIO_CHECK_EQUAL(pixel[2], 0.9f + 0.8007f);
+        OCIO_CHECK_EQUAL(pixel[3], 1.0f + 0.5007f);
+    }
+
+    {
+        float pixel[3]{ 0.1f, 0.3f, 0.9f };
+
+        OCIO_CHECK_NO_THROW(cpuProcessor->applyRGB(pixel));
+
+        OCIO_CHECK_EQUAL(pixel[0], 0.1f + 1.4002f);
+        OCIO_CHECK_EQUAL(pixel[1], 0.3f + 0.4005f);
+        OCIO_CHECK_EQUAL(pixel[2], 0.9f + 0.8007f);
+    }
+}
+
+namespace
+{
+
+template<OCIO::BitDepth inBD, OCIO::BitDepth outBD>
+void ComputeImage(unsigned width, unsigned height, unsigned nChannels,
+                   const void * inBuf, void * outBuf,
+                   unsigned line)
+{
+    typedef typename OCIO::BitDepthInfo<inBD>::Type InType;
+    typedef typename OCIO::BitDepthInfo<outBD>::Type OutType;
+
+    OCIO::ConfigRcPtr config = OCIO::Config::Create();
+
+    OCIO::MatrixTransformRcPtr transform = OCIO::MatrixTransform::Create();
+    const float offset4[4] = { 1.2002f, 0.4005f, 0.8007f, 0.5f };
+    transform->setOffset( offset4 );
+
+    OCIO::ConstProcessorRcPtr processor;
+    OCIO_CHECK_NO_THROW(processor = config->getProcessor(transform));
+
+    OCIO::ConstCPUProcessorRcPtr cpuProcessor;
+    OCIO_CHECK_NO_THROW(cpuProcessor
+        = processor->getOptimizedCPUProcessor(inBD, outBD,
+                                              OCIO::OPTIMIZATION_DEFAULT,
+                                              OCIO::FINALIZATION_DEFAULT));
+
+    const OCIO::PackedImageDesc srcImgDesc((void *)inBuf,
+                                           width, height, nChannels,
+                                           inBD,
+                                           sizeof(InType),
+                                           OCIO::AutoStride,
+                                           OCIO::AutoStride);
+
+    OCIO::PackedImageDesc dstImgDesc(outBuf,
+                                     width, height, nChannels,
+                                     outBD,
+                                     sizeof(OutType),
+                                     OCIO::AutoStride,
+                                     OCIO::AutoStride);
+
+    OCIO_CHECK_NO_THROW(cpuProcessor->apply(srcImgDesc, dstImgDesc));
+
+
+    const InType * inValues  = (const InType *)inBuf;
+    OutType * outValues = (OutType *)outBuf;
+
+    const float inScale = float(GetBitDepthMaxValue(OCIO::BIT_DEPTH_F32)
+                                    / GetBitDepthMaxValue(inBD));
+
+    const float outScale = float( GetBitDepthMaxValue(outBD)
+                                    / GetBitDepthMaxValue(OCIO::BIT_DEPTH_F32));
+
+    for(size_t idx=0; idx<(width*height);)
+    {
+        // Manual computation of the results.
+
+        const float pxl[4]{ (float(inValues[idx+0]) * inScale + offset4[0]) * outScale,
+                            (float(inValues[idx+1]) * inScale + offset4[1]) * outScale,
+                            (float(inValues[idx+2]) * inScale + offset4[2]) * outScale,
+                            nChannels==4 
+                                ? ((float(inValues[idx+3]) * inScale + offset4[3]) * outScale) 
+                                : 0.0f 
+                          };
+
+        // Validate all the results.
+
+        if(OCIO::BitDepthInfo<outBD>::isFloat)
+        {
+            OCIO_CHECK_CLOSE_FROM(outValues[idx+0], pxl[0], 1e-6f, line);
+            OCIO_CHECK_CLOSE_FROM(outValues[idx+1], pxl[1], 1e-6f, line);
+            OCIO_CHECK_CLOSE_FROM(outValues[idx+2], pxl[2], 1e-6f, line);
+            if(nChannels==4)
+            {
+                OCIO_CHECK_CLOSE_FROM(outValues[idx+3], pxl[3], 1e-6f, line);
+            }
+        }
+        else
+        {
+            OCIO_CHECK_EQUAL_FROM(outValues[idx+0], OCIO::Converter<outBD>::CastValue(pxl[0]), line);
+            OCIO_CHECK_EQUAL_FROM(outValues[idx+1], OCIO::Converter<outBD>::CastValue(pxl[1]), line);
+            OCIO_CHECK_EQUAL_FROM(outValues[idx+2], OCIO::Converter<outBD>::CastValue(pxl[2]), line);
+            if(nChannels==4)
+            {
+                OCIO_CHECK_EQUAL_FROM(outValues[idx+3], OCIO::Converter<outBD>::CastValue(pxl[3]), line);
+            }
+        }
+
+        idx += nChannels;
+    }
+}
+
+}; //anon
+
+OCIO_ADD_TEST(CPUProcessor, optimizations)
+{
+    // The unit test validates some 'optimization' paths now implemented
+    // by the ScanlineHelper class. To fully validate these paths a 'normal' image
+    // must be used (i.e. 'few pixels' image is not enough).
+
+    constexpr static const unsigned width     = 640;
+    constexpr static const unsigned height    = 480;
+    constexpr static const unsigned nChannels = 4;
+
+    // Input and Output are not packed RGBA i.e no optimizations.
+    {
+        std::vector<uint16_t> inBuf(width*height*3);
+        for(size_t idx=0; idx<inBuf.size(); ++idx)
+        {
+            inBuf[idx] = uint16_t(idx % OCIO::BitDepthInfo<OCIO::BIT_DEPTH_UINT16>::maxValue);
+        }
+
+        std::vector<uint16_t> outBuf(width*height*3);
+
+        ComputeImage<OCIO::BIT_DEPTH_UINT16, OCIO::BIT_DEPTH_UINT16>(width, height, 3,
+                                                                     &inBuf[0], &outBuf[0],
+                                                                     __LINE__);
+    }
+
+    // Input and Output are packed RGBA but not F32.
+    {
+        std::vector<uint16_t> inBuf(width*height*nChannels);
+        for(size_t idx=0; idx<inBuf.size(); ++idx)
+        {
+            inBuf[idx] = uint16_t(idx % OCIO::BitDepthInfo<OCIO::BIT_DEPTH_UINT16>::maxValue);
+        }
+
+        std::vector<uint16_t> outBuf(width*height*nChannels);
+
+        ComputeImage<OCIO::BIT_DEPTH_UINT16, OCIO::BIT_DEPTH_UINT16>(width, height, nChannels,
+                                                                     &inBuf[0], &outBuf[0],
+                                                                     __LINE__);
+    }
+
+    // Input is packed RGBA but not F32, and output is packed RGBA F32.
+    {
+        std::vector<uint16_t> inBuf(width*height*nChannels);
+        for(size_t idx=0; idx<inBuf.size(); ++idx)
+        {
+            inBuf[idx] = uint16_t(idx % OCIO::BitDepthInfo<OCIO::BIT_DEPTH_UINT16>::maxValue);
+        }
+
+        std::vector<float> outBuf(width*height*nChannels);
+
+        ComputeImage<OCIO::BIT_DEPTH_UINT16, OCIO::BIT_DEPTH_F32>(width, height, nChannels,
+                                                                  &inBuf[0], &outBuf[0],
+                                                                  __LINE__);
+    }
+
+    // Input is packed RGBA F32, and output is packed RGBA but not F32.
+    {
+        std::vector<float> inBuf(width*height*nChannels);
+        for(size_t idx=0; idx<inBuf.size(); ++idx)
+        {
+            inBuf[idx] = float(idx) / float(inBuf.size());
+        }
+
+        std::vector<uint16_t> outBuf(width*height*nChannels);
+
+        ComputeImage<OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_UINT16>(width, height, nChannels,
+                                                                  &inBuf[0], &outBuf[0],
+                                                                  __LINE__);
+    }
+
+    // Input and output are both packed RGBA F32.
+    {
+        std::vector<float> inBuf(width*height*nChannels);
+        for(size_t idx=0; idx<inBuf.size(); ++idx)
+        {
+            inBuf[idx] = float(idx) / float(inBuf.size());
+        }
+
+        std::vector<float> outBuf(width*height*nChannels);
+
+        ComputeImage<OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32>(width, height, nChannels,
+                                                               &inBuf[0], &outBuf[0],
+                                                               __LINE__);
     }
 }
 

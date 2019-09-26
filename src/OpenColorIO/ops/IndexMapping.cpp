@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <sstream>
 
@@ -133,9 +108,9 @@ OCIO_NAMESPACE_EXIT
 #ifdef OCIO_UNIT_TEST
 
 namespace OCIO = OCIO_NAMESPACE;
-#include "unittest.h"
+#include "UnitTest.h"
 
-OIIO_ADD_TEST(IndexMapping, test_accessors)
+OCIO_ADD_TEST(IndexMapping, test_accessors)
 {
     OCIO::IndexMapping ref(4);
     ref.setPair(0u, 0.f, 0.f);
@@ -143,29 +118,29 @@ OIIO_ADD_TEST(IndexMapping, test_accessors)
     ref.setPair(2u, 200.f, 2.f);
     ref.setPair(3u, 300.f, 3.f);
 
-    OIIO_CHECK_THROW_WHAT(ref.setPair(5u, 300.f, 3.f),
+    OCIO_CHECK_THROW_WHAT(ref.setPair(5u, 300.f, 3.f),
                           OCIO::Exception,
                           "invalid. Should be less than");
 
     ref.validate();
 
-    OIIO_CHECK_EQUAL(ref.getDimension(), 4u);
+    OCIO_CHECK_EQUAL(ref.getDimension(), 4u);
     float first, second;
     ref.getPair(0u, first, second);
-    OIIO_CHECK_EQUAL(first, 0.f);  OIIO_CHECK_EQUAL(second, 0.f);
+    OCIO_CHECK_EQUAL(first, 0.f);  OCIO_CHECK_EQUAL(second, 0.f);
     ref.getPair(1u, first, second);
-    OIIO_CHECK_EQUAL(first, 100.f);  OIIO_CHECK_EQUAL(second, 1.f);
+    OCIO_CHECK_EQUAL(first, 100.f);  OCIO_CHECK_EQUAL(second, 1.f);
     ref.getPair(2u, first, second);
-    OIIO_CHECK_EQUAL(first, 200.f);  OIIO_CHECK_EQUAL(second, 2.f);
+    OCIO_CHECK_EQUAL(first, 200.f);  OCIO_CHECK_EQUAL(second, 2.f);
     ref.getPair(3u, first, second);
-    OIIO_CHECK_EQUAL(first, 300.f);  OIIO_CHECK_EQUAL(second, 3.f);
+    OCIO_CHECK_EQUAL(first, 300.f);  OCIO_CHECK_EQUAL(second, 3.f);
 
     ref.resize(8);
-    OIIO_CHECK_EQUAL(ref.getDimension(), 8u);
+    OCIO_CHECK_EQUAL(ref.getDimension(), 8u);
 
 }
 
-OIIO_ADD_TEST(IndexMapping, range_validation)
+OCIO_ADD_TEST(IndexMapping, range_validation)
 {
     OCIO::IndexMapping ref(4);
     ref.setPair(0u, 0.f, 0.f);
@@ -173,17 +148,17 @@ OIIO_ADD_TEST(IndexMapping, range_validation)
     ref.setPair(2u, 200.f, 2.f);
     ref.setPair(3u, 200.f, 3.f);  // illegal
 
-    OIIO_CHECK_THROW_WHAT(ref.validate(), 
+    OCIO_CHECK_THROW_WHAT(ref.validate(), 
                           OCIO::Exception, 
                           "Index values must be increasing");
 
     ref.setPair(3u, 300.f, 2.f);  // illegal
-    OIIO_CHECK_THROW_WHAT(ref.validate(), 
+    OCIO_CHECK_THROW_WHAT(ref.validate(), 
                           OCIO::Exception, 
                           "Index values must be increasing");
 }
 
-OIIO_ADD_TEST(IndexMapping, equality)
+OCIO_ADD_TEST(IndexMapping, equality)
 {
     OCIO::IndexMapping ref1(4);
     ref1.setPair(0u, 0.f, 0.f);
@@ -197,11 +172,11 @@ OIIO_ADD_TEST(IndexMapping, equality)
     ref2.setPair(2u, 200.f, 2.f);
     ref2.setPair(3u, 300.f, 3.f);
 
-    OIIO_CHECK_ASSERT(ref1 == ref2);
+    OCIO_CHECK_ASSERT(ref1 == ref2);
 
     ref2.setPair(2u, 200.f, 2.1f);
 
-    OIIO_CHECK_ASSERT(!(ref1 == ref2));
+    OCIO_CHECK_ASSERT(!(ref1 == ref2));
 }
 
 #endif

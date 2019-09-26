@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2019 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <algorithm>
 #include <cmath>
@@ -193,9 +168,9 @@ OCIO_NAMESPACE_EXIT
 
 namespace OCIO = OCIO_NAMESPACE;
 
-#include "unittest.h"
+#include "UnitTest.h"
 
-OIIO_ADD_TEST(LogUtil, ctf_to_ocio_fail)
+OCIO_ADD_TEST(LogUtil, ctf_to_ocio_fail)
 {
     OCIO::LogUtil::CTFParams ctfParams;
     ctfParams.m_style = OCIO::LogUtil::LOG_TO_LIN;
@@ -216,7 +191,7 @@ OIIO_ADD_TEST(LogUtil, ctf_to_ocio_fail)
     greenP = redP;
     blueP = redP;
     
-    OIIO_CHECK_THROW_WHAT( 
+    OCIO_CHECK_THROW_WHAT( 
         OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir),
         OCIO::Exception, "gamma should be greater than 0.01");
 
@@ -226,7 +201,7 @@ OIIO_ADD_TEST(LogUtil, ctf_to_ocio_fail)
     redP[OCIO::LogUtil::CTFParams::highlight] = 0.8;
     redP[OCIO::LogUtil::CTFParams::shadow]    = 0.5;
 
-    OIIO_CHECK_THROW_WHAT(
+    OCIO_CHECK_THROW_WHAT(
         OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir),
         OCIO::Exception, "refWhite should be greater than refBlack");
 
@@ -236,13 +211,13 @@ OIIO_ADD_TEST(LogUtil, ctf_to_ocio_fail)
     redP[OCIO::LogUtil::CTFParams::highlight] = 0.5; // invalid
     redP[OCIO::LogUtil::CTFParams::shadow]    = 0.5; // invalid
 
-    OIIO_CHECK_THROW_WHAT(
+    OCIO_CHECK_THROW_WHAT(
         OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir),
         OCIO::Exception, "highlight should be greater than shadow");
 
 }
 
-OIIO_ADD_TEST(LogUtil, ctf_to_ocio_ok)
+OCIO_ADD_TEST(LogUtil, ctf_to_ocio_ok)
 {
     OCIO::LogUtil::CTFParams ctfParams;
     ctfParams.m_style = OCIO::LogUtil::LOG10;
@@ -252,61 +227,61 @@ OIIO_ADD_TEST(LogUtil, ctf_to_ocio_ok)
     OCIO::TransformDirection dir;
     OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir);
 
-    OIIO_CHECK_EQUAL(base, 10.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_SLOPE], 1.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_SLOPE], 1.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_OFFSET], 0.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_OFFSET], 0.);
-    OIIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_FORWARD);
+    OCIO_CHECK_EQUAL(base, 10.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_SLOPE], 1.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_SLOPE], 1.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_OFFSET], 0.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_OFFSET], 0.);
+    OCIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_FORWARD);
 
     OCIO::LogOpData logOp(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, dir,
                           base, paramsR, paramsG, paramsB);
 
-    OIIO_CHECK_ASSERT(!logOp.isIdentity());
-    OIIO_CHECK_ASSERT(!logOp.hasChannelCrosstalk());
-    OIIO_CHECK_NO_THROW(logOp.validate());
+    OCIO_CHECK_ASSERT(!logOp.isIdentity());
+    OCIO_CHECK_ASSERT(!logOp.hasChannelCrosstalk());
+    OCIO_CHECK_NO_THROW(logOp.validate());
 
     ctfParams.m_style = OCIO::LogUtil::LOG2;
     OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir);
 
-    OIIO_CHECK_EQUAL(base, 2.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_SLOPE], 1.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_SLOPE], 1.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_OFFSET], 0.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_OFFSET], 0.);
-    OIIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_FORWARD);
+    OCIO_CHECK_EQUAL(base, 2.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_SLOPE], 1.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_SLOPE], 1.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_OFFSET], 0.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_OFFSET], 0.);
+    OCIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_FORWARD);
 
     OCIO::LogOpData logOp2(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, dir,
                            base, paramsR, paramsG, paramsB);
-    OIIO_CHECK_NO_THROW(logOp2.validate());
+    OCIO_CHECK_NO_THROW(logOp2.validate());
 
     ctfParams.m_style = OCIO::LogUtil::ANTI_LOG10;
     OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir);
 
-    OIIO_CHECK_EQUAL(base, 10.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_SLOPE], 1.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_SLOPE], 1.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_OFFSET], 0.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_OFFSET], 0.);
-    OIIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_INVERSE);
+    OCIO_CHECK_EQUAL(base, 10.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_SLOPE], 1.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_SLOPE], 1.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_OFFSET], 0.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_OFFSET], 0.);
+    OCIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_INVERSE);
 
     OCIO::LogOpData logOp3(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, dir,
                            base, paramsR, paramsG, paramsB);
-    OIIO_CHECK_NO_THROW(logOp3.validate());
+    OCIO_CHECK_NO_THROW(logOp3.validate());
 
     ctfParams.m_style = OCIO::LogUtil::ANTI_LOG2;
     OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir);
 
-    OIIO_CHECK_EQUAL(base, 2.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_SLOPE], 1.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_SLOPE], 1.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_OFFSET], 0.);
-    OIIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_OFFSET], 0.);
-    OIIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_INVERSE);
+    OCIO_CHECK_EQUAL(base, 2.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_SLOPE], 1.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_SLOPE], 1.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LIN_SIDE_OFFSET], 0.);
+    OCIO_CHECK_EQUAL(paramsR[OCIO::LOG_SIDE_OFFSET], 0.);
+    OCIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_INVERSE);
 
     OCIO::LogOpData logOp4(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, dir,
                            base, paramsR, paramsG, paramsB);
-    OIIO_CHECK_NO_THROW(logOp4.validate());
+    OCIO_CHECK_NO_THROW(logOp4.validate());
 
     auto & redP = ctfParams.get(OCIO::LogUtil::CTFParams::red);
     redP[OCIO::LogUtil::CTFParams::gamma]     = 4.6;
@@ -329,30 +304,30 @@ OIIO_ADD_TEST(LogUtil, ctf_to_ocio_ok)
     OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir);
 
     const double tol = 1e-6;
-    OIIO_CHECK_EQUAL(base, 10.);
-    OIIO_CHECK_CLOSE(paramsR[OCIO::LOG_SIDE_SLOPE], 2.2482893, tol);
-    OIIO_CHECK_CLOSE(paramsR[OCIO::LIN_SIDE_SLOPE], 1.7250706, tol);
-    OIIO_CHECK_CLOSE(paramsR[OCIO::LIN_SIDE_OFFSET], -0.2075494, tol);
-    OIIO_CHECK_CLOSE(paramsR[OCIO::LOG_SIDE_OFFSET], 0.7409580, tol);
+    OCIO_CHECK_EQUAL(base, 10.);
+    OCIO_CHECK_CLOSE(paramsR[OCIO::LOG_SIDE_SLOPE], 2.2482893, tol);
+    OCIO_CHECK_CLOSE(paramsR[OCIO::LIN_SIDE_SLOPE], 1.7250706, tol);
+    OCIO_CHECK_CLOSE(paramsR[OCIO::LIN_SIDE_OFFSET], -0.2075494, tol);
+    OCIO_CHECK_CLOSE(paramsR[OCIO::LOG_SIDE_OFFSET], 0.7409580, tol);
 
-    OIIO_CHECK_CLOSE(paramsG[OCIO::LOG_SIDE_SLOPE], 1.2707722, tol);
-    OIIO_CHECK_CLOSE(paramsG[OCIO::LIN_SIDE_SLOPE], 0.5240051, tol);
-    OIIO_CHECK_CLOSE(paramsG[OCIO::LIN_SIDE_OFFSET], 0.5807959, tol);
-    OIIO_CHECK_CLOSE(paramsG[OCIO::LOG_SIDE_OFFSET], 0.2932551, tol);
+    OCIO_CHECK_CLOSE(paramsG[OCIO::LOG_SIDE_SLOPE], 1.2707722, tol);
+    OCIO_CHECK_CLOSE(paramsG[OCIO::LIN_SIDE_SLOPE], 0.5240051, tol);
+    OCIO_CHECK_CLOSE(paramsG[OCIO::LIN_SIDE_OFFSET], 0.5807959, tol);
+    OCIO_CHECK_CLOSE(paramsG[OCIO::LOG_SIDE_OFFSET], 0.2932551, tol);
 
-    OIIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_FORWARD);
+    OCIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_FORWARD);
 
     OCIO::LogOpData logOp5(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, dir,
                            base, paramsR, paramsG, paramsB);
-    OIIO_CHECK_NO_THROW(logOp5.validate());
+    OCIO_CHECK_NO_THROW(logOp5.validate());
 
     ctfParams.m_style = OCIO::LogUtil::LOG_TO_LIN;
     OCIO::LogUtil::ConvertLogParameters(ctfParams, base, paramsR, paramsG, paramsB, dir);
-    OIIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_INVERSE);
+    OCIO_CHECK_EQUAL(dir, OCIO::TRANSFORM_DIR_INVERSE);
 
     OCIO::LogOpData logOp6(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, dir,
                            base, paramsR, paramsG, paramsB);
-    OIIO_CHECK_NO_THROW(logOp6.validate());
+    OCIO_CHECK_NO_THROW(logOp6.validate());
 }
 
 #endif

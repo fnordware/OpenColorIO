@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <algorithm>
 #include <cmath>
@@ -49,13 +24,14 @@ OCIO_NAMESPACE_ENTER
 class GammaBasicOpCPU : public OpCPU
 {
 public:
-
-    GammaBasicOpCPU(const GammaOpDataRcPtr & gamma);
+    GammaBasicOpCPU() = delete;
+    GammaBasicOpCPU(const GammaBasicOpCPU &) = delete;
+    explicit GammaBasicOpCPU(ConstGammaOpDataRcPtr & gamma);
 
     void apply(const void * inImg, void * outImg, long numPixels) const override;
 
 protected:
-    void update(const GammaOpDataRcPtr & gamma);
+    void update(ConstGammaOpDataRcPtr & gamma);
 
 private:
     float m_inScale;
@@ -69,7 +45,7 @@ private:
 class GammaMoncurveOpCPU : public OpCPU
 {
 protected:
-    GammaMoncurveOpCPU(const GammaOpDataRcPtr &) : OpCPU() {}
+    explicit GammaMoncurveOpCPU(ConstGammaOpDataRcPtr &) : OpCPU() {}
 
 protected:
     RendererParams m_red;
@@ -81,12 +57,12 @@ protected:
 class GammaMoncurveOpCPUFwd : public GammaMoncurveOpCPU
 {
 public:
-    GammaMoncurveOpCPUFwd(const GammaOpDataRcPtr & gamma);
+    explicit GammaMoncurveOpCPUFwd(ConstGammaOpDataRcPtr & gamma);
 
     void apply(const void * inImg, void * outImg, long numPixels) const override;
 
 protected:
-    void update(const GammaOpDataRcPtr & gamma);
+    void update(ConstGammaOpDataRcPtr & gamma);
 
 private:
     float m_outScale;
@@ -95,19 +71,19 @@ private:
 class GammaMoncurveOpCPURev : public GammaMoncurveOpCPU
 {
 public:
-    GammaMoncurveOpCPURev(const GammaOpDataRcPtr & gamma);
+    explicit GammaMoncurveOpCPURev(ConstGammaOpDataRcPtr & gamma);
 
     void apply(const void * inImg, void * outImg, long numPixels) const override;
 
 protected:
-    void update(const GammaOpDataRcPtr & gamma);
+    void update(ConstGammaOpDataRcPtr & gamma);
 
 private:
     float m_inScale;
 };
 
 
-OpCPURcPtr GetGammaRenderer(const GammaOpDataRcPtr & gamma)
+ConstOpCPURcPtr GetGammaRenderer(ConstGammaOpDataRcPtr & gamma)
 {
     switch(gamma->getStyle())
     {
@@ -132,16 +108,15 @@ OpCPURcPtr GetGammaRenderer(const GammaOpDataRcPtr & gamma)
     }
 
     throw Exception("Unsupported Gamma style");
-    return OpCPURcPtr();
 }
 
 
 
 
-GammaBasicOpCPU::GammaBasicOpCPU(const GammaOpDataRcPtr & gamma)
+GammaBasicOpCPU::GammaBasicOpCPU(ConstGammaOpDataRcPtr & gamma)
     :   OpCPU()
-    ,   m_inScale(0.0f)
-    ,   m_outScale(0.0f)
+    ,   m_inScale(1.0f)
+    ,   m_outScale(1.0f)
     ,   m_redGamma(0.0f)
     ,   m_grnGamma(0.0f)
     ,   m_bluGamma(0.0f)
@@ -150,7 +125,7 @@ GammaBasicOpCPU::GammaBasicOpCPU(const GammaOpDataRcPtr & gamma)
     update(gamma);
 }
 
-void GammaBasicOpCPU::update(const GammaOpDataRcPtr & gamma)
+void GammaBasicOpCPU::update(ConstGammaOpDataRcPtr & gamma)
 {
     // The gamma calculations are done in normalized space.
     // Compute the scale factors for integer in/out depths.
@@ -227,14 +202,14 @@ void GammaBasicOpCPU::apply(const void * inImg, void * outImg, long numPixels) c
 #endif
 }
 
-GammaMoncurveOpCPUFwd::GammaMoncurveOpCPUFwd(const GammaOpDataRcPtr & gamma)
+GammaMoncurveOpCPUFwd::GammaMoncurveOpCPUFwd(ConstGammaOpDataRcPtr & gamma)
     :   GammaMoncurveOpCPU(gamma)
     ,   m_outScale(0.0f)
 {
     update(gamma);
 }
 
-void GammaMoncurveOpCPUFwd::update(const GammaOpDataRcPtr & gamma)
+void GammaMoncurveOpCPUFwd::update(ConstGammaOpDataRcPtr & gamma)
 {
     // NB: The power function is applied in normalized space
     // but we fold the in/out depth conversion into the other scaling
@@ -248,7 +223,7 @@ void GammaMoncurveOpCPUFwd::update(const GammaOpDataRcPtr & gamma)
     ComputeParamsFwd(gamma->getBlueParams(),  inBitDepth, outBitDepth, m_blue);
     ComputeParamsFwd(gamma->getAlphaParams(), inBitDepth, outBitDepth, m_alpha);
 
-    m_outScale = GetBitDepthMaxValue(outBitDepth);
+    m_outScale = (float)GetBitDepthMaxValue(outBitDepth);
 }
 
 void GammaMoncurveOpCPUFwd::apply(const void * inImg, void * outImg, long numPixels) const
@@ -333,14 +308,14 @@ void GammaMoncurveOpCPUFwd::apply(const void * inImg, void * outImg, long numPix
 #endif
 }
 
-GammaMoncurveOpCPURev::GammaMoncurveOpCPURev(const GammaOpDataRcPtr & gamma)
+GammaMoncurveOpCPURev::GammaMoncurveOpCPURev(ConstGammaOpDataRcPtr & gamma)
     :   GammaMoncurveOpCPU(gamma)
-    ,   m_inScale(0.0f)
+    ,   m_inScale(1.0f)
 {
     update(gamma);
 }
 
-void GammaMoncurveOpCPURev::update(const GammaOpDataRcPtr & gamma)
+void GammaMoncurveOpCPURev::update(ConstGammaOpDataRcPtr & gamma)
 {
     // NB: The power function is applied in normalized space
     // but we fold the in/out depth conversion into the other scaling

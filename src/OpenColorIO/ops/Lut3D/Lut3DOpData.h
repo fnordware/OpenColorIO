@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #ifndef INCLUDED_OCIO_LUT3DOPDATA_H
 #define INCLUDED_OCIO_LUT3DOPDATA_H
@@ -35,6 +10,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Op.h"
 #include "ops/OpArray.h"
+#include "PrivateTypes.h"
+
 
 OCIO_NAMESPACE_ENTER
 {
@@ -61,12 +38,11 @@ public:
     Lut3DOpData(long gridSize, TransformDirection dir);
 
     Lut3DOpData(
-        BitDepth             inBitDepth,
-        BitDepth             outBitDepth,
-        const std::string &  id,
-        const Descriptions & descriptions,
-        Interpolation        interpolation,
-        unsigned long        gridSize
+        BitDepth                   inBitDepth,
+        BitDepth                   outBitDepth,
+        const FormatMetadataImpl & metadata,
+        Interpolation              interpolation,
+        unsigned long              gridSize
     );
 
     virtual ~Lut3DOpData();
@@ -80,7 +56,7 @@ public:
     void setInterpolation(Interpolation algo);
 
     TransformDirection getDirection() const { return m_direction; }
-
+    
     // There are two inversion algorithms provided for 3D LUT, an exact
     // method (that assumes use of tetrahedral in the forward direction)
     // and a fast method that bakes the inverse out as another forward
@@ -100,6 +76,8 @@ public:
     inline const Array & getArray() const { return m_array; }
     inline Array & getArray() { return m_array; }
 
+    void setArrayFromRedFastestOrder(const std::vector<float> & lut);
+
     // Get the grid dimensions of the array (array is N x N x N x 3).
     // Returns the dimension N.
     inline long getGridSize() const { return m_array.getLength(); }
@@ -112,7 +90,7 @@ public:
 
     bool isIdentity() const override;
 
-    bool hasChannelCrosstalk() const override { return false; }
+    bool hasChannelCrosstalk() const override { return true; }
 
     OpDataRcPtr getIdentityReplacement() const;
 
@@ -129,6 +107,9 @@ public:
     bool operator==(const OpData& other) const override;
 
     void finalize() override;
+
+    inline BitDepth getFileOutputBitDepth() const { return m_fileOutBitDepth; }
+    inline void setFileOutputBitDepth(BitDepth out) { m_fileOutBitDepth = out; }
 
 protected:
     // Test core parts of LUTs for equality.
@@ -152,6 +133,8 @@ public:
 
         bool isIdentity(BitDepth outBitDepth) const;
 
+        void resize(unsigned long length, unsigned long numColorComponents) override;
+
         unsigned long getNumValues() const override;
 
         void getRGB(long i, long j, long k, float* RGB) const;
@@ -174,6 +157,10 @@ private:
 
     TransformDirection  m_direction;
     LutInversionQuality m_invQuality;
+
+    // Out bit-depth to be used for file I/O.
+    BitDepth m_fileOutBitDepth = BIT_DEPTH_UNKNOWN;
+
 };
 
 // Make a forward Lut3DOpData that approximates the exact inverse Lut3DOpData

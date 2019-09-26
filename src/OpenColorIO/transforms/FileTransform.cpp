@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2003-2010 Sony Pictures Imageworks Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <algorithm>
 #include <fstream>
@@ -66,7 +41,9 @@ OCIO_NAMESPACE_ENTER
             dir_(TRANSFORM_DIR_FORWARD),
             interp_(INTERP_UNKNOWN)
         { }
-        
+
+        Impl(const Impl &) = delete;
+
         ~Impl()
         { }
         
@@ -272,7 +249,7 @@ OCIO_NAMESPACE_ENTER
     void FormatRegistry::registerFileFormat(FileFormat* format)
     {
         FormatInfoVec formatInfoVec;
-        format->GetFormatInfo(formatInfoVec);
+        format->getFormatInfo(formatInfoVec);
         
         if(formatInfoVec.empty())
         {
@@ -310,7 +287,13 @@ OCIO_NAMESPACE_ENTER
                 m_readFormatNames.push_back(formatInfoVec[i].name);
                 m_readFormatExtensions.push_back(formatInfoVec[i].extension);
             }
-            
+
+            if (formatInfoVec[i].capabilities & FORMAT_CAPABILITY_BAKE)
+            {
+                m_bakeFormatNames.push_back(formatInfoVec[i].name);
+                m_bakeFormatExtensions.push_back(formatInfoVec[i].extension);
+            }
+
             if(formatInfoVec[i].capabilities & FORMAT_CAPABILITY_WRITE)
             {
                 m_writeFormatNames.push_back(formatInfoVec[i].name);
@@ -342,7 +325,11 @@ OCIO_NAMESPACE_ENTER
         {
             return static_cast<int>(m_readFormatNames.size());
         }
-        else if(capability == FORMAT_CAPABILITY_WRITE)
+        else if (capability == FORMAT_CAPABILITY_BAKE)
+        {
+            return static_cast<int>(m_bakeFormatNames.size());
+        }
+        else if (capability == FORMAT_CAPABILITY_WRITE)
         {
             return static_cast<int>(m_writeFormatNames.size());
         }
@@ -359,6 +346,14 @@ OCIO_NAMESPACE_ENTER
                 return "";
             }
             return m_readFormatNames[index].c_str();
+        }
+        else if (capability == FORMAT_CAPABILITY_BAKE)
+        {
+            if (index<0 || index >= static_cast<int>(m_bakeFormatNames.size()))
+            {
+                return "";
+            }
+            return m_bakeFormatNames[index].c_str();
         }
         else if(capability == FORMAT_CAPABILITY_WRITE)
         {
@@ -383,6 +378,15 @@ OCIO_NAMESPACE_ENTER
             }
             return m_readFormatExtensions[index].c_str();
         }
+        else if (capability == FORMAT_CAPABILITY_BAKE)
+        {
+            if (index<0
+                || index >= static_cast<int>(m_bakeFormatExtensions.size()))
+            {
+                return "";
+            }
+            return m_bakeFormatExtensions[index].c_str();
+        }
         else if(capability == FORMAT_CAPABILITY_WRITE)
         {
             if(index<0 
@@ -405,7 +409,7 @@ OCIO_NAMESPACE_ENTER
     std::string FileFormat::getName() const
     {
         FormatInfoVec infoVec;
-        GetFormatInfo(infoVec);
+        getFormatInfo(infoVec);
         if(infoVec.size()>0)
         {
             return infoVec[0].name;
@@ -415,7 +419,17 @@ OCIO_NAMESPACE_ENTER
         
     
     
-    void FileFormat::Write(const Baker & /*baker*/,
+    void FileFormat::bake(const Baker & /*baker*/,
+                          const std::string & formatName,
+                          std::ostream & /*ostream*/) const
+    {
+        std::ostringstream os;
+        os << "Format " << formatName << " does not support baking.";
+        throw Exception(os.str().c_str());
+    }
+    
+    void FileFormat::write(const OpRcPtrVec & /*ops*/,
+                           const FormatMetadataImpl & /*metadata*/,
                            const std::string & formatName,
                            std::ostream & /*ostream*/) const
     {
@@ -423,7 +437,7 @@ OCIO_NAMESPACE_ENTER
         os << "Format " << formatName << " does not support writing.";
         throw Exception(os.str().c_str());
     }
-    
+
     namespace
     {
     
@@ -464,7 +478,7 @@ OCIO_NAMESPACE_ENTER
                     // Open the filePath
                     filestream.open(
                         filepath.c_str(),
-                        tryFormat->IsBinary()
+                        tryFormat->isBinary()
                             ? std::ios_base::binary : std::ios_base::in);
                     if (!filestream.good())
                     {
@@ -476,7 +490,7 @@ OCIO_NAMESPACE_ENTER
                         throw Exception(os.str().c_str());
                     }
 
-                    CachedFileRcPtr cachedFile = tryFormat->Read(
+                    CachedFileRcPtr cachedFile = tryFormat->read(
                         filestream,
                         filepath);
                     
@@ -536,7 +550,7 @@ OCIO_NAMESPACE_ENTER
                 std::ifstream filestream;
                 try
                 {
-                    filestream.open(filepath.c_str(), altFormat->IsBinary()
+                    filestream.open(filepath.c_str(), altFormat->isBinary()
                         ? std::ios_base::binary : std::ios_base::in);
                     if (!filestream.good())
                     {
@@ -549,7 +563,7 @@ OCIO_NAMESPACE_ENTER
                         throw Exception(os.str().c_str());
                     }
 
-                    cachedFile = altFormat->Read(filestream, filepath);
+                    cachedFile = altFormat->read(filestream, filepath);
                     
                     if(IsDebugLoggingEnabled())
                     {
@@ -766,17 +780,18 @@ OCIO_NAMESPACE_ENTER
             GetCachedFileAndFormat(format, cachedFile, filepath);
             // Add FileNoOp and keep track of it.
             CreateFileNoOp(ops, filepath);
-            ConstOpRcPtr fileNoOp = ops.back();
+            ConstOpRcPtr fileNoOpConst = ops.back();
+            OpRcPtr fileNoOp = ops.back();
 
-            // CTF implementation of FileFormat::BuildFileOps might call
+            // CTF implementation of FileFormat::buildFileOps might call
             // BuildFileTransformOps for References.
-            format->BuildFileOps(ops,
+            format->buildFileOps(ops,
                                  config, context,
                                  cachedFile, fileTransform,
                                  dir);
 
             // File has been loaded completely. It may now be referenced again.
-            ConstOpDataRcPtr data = fileNoOp->data();
+            ConstOpDataRcPtr data = fileNoOpConst->data();
             auto fileData = DynamicPtrCast<const FileNoOpData>(data);
             if (fileData)
             {
@@ -794,233 +809,3 @@ OCIO_NAMESPACE_ENTER
     }
 }
 OCIO_NAMESPACE_EXIT
-
-#ifdef OCIO_UNIT_TEST
-
-namespace OCIO = OCIO_NAMESPACE;
-#include <algorithm>
-#include "unittest.h"
-#include "UnitTestUtils.h"
-
-void LoadTransformFile(const std::string & fileName)
-{
-    const std::string filePath(std::string(OCIO::getTestFilesDir()) + "/"
-                               + fileName);
-    // Create a FileTransform.
-    OCIO::FileTransformRcPtr pFileTransform
-        = OCIO::FileTransform::Create();
-    // A tranform file does not define any interpolation (contrary to config
-    // file), this is to avoid exception when creating the operation.
-    pFileTransform->setInterpolation(OCIO::INTERP_LINEAR);
-    pFileTransform->setDirection(OCIO::TRANSFORM_DIR_FORWARD);
-    pFileTransform->setSrc(filePath.c_str());
-
-    // Create empty Config to use.
-    OCIO::ConfigRcPtr pConfig = OCIO::Config::Create();
-
-    // Get the processor corresponding to the transform.
-    OCIO::ConstProcessorRcPtr pProcessor
-        = pConfig->getProcessor(pFileTransform);
-
-}
-
-OIIO_ADD_TEST(FileTransform, LoadFileOK)
-{
-    // Discreet 1D LUT.
-    const std::string discreetLut("logtolin_8to8.lut");
-    OIIO_CHECK_NO_THROW(LoadTransformFile(discreetLut));
-
-    // Houdini 1D LUT.
-    const std::string houdiniLut("houdini.lut");
-    OIIO_CHECK_NO_THROW(LoadTransformFile(houdiniLut));
-
-    // Discreet 3D LUT file.
-    const std::string discree3DtLut("discreet-3d-lut.3dl");
-    OIIO_CHECK_NO_THROW(LoadTransformFile(discree3DtLut));
-
-    // 3D LUT file.
-    const std::string crosstalk3DtLut("crosstalk.3dl");
-    OIIO_CHECK_NO_THROW(LoadTransformFile(crosstalk3DtLut));
-
-    // Lustre 3D LUT file.
-    const std::string lustre3DtLut("lustre_33x33x33.3dl");
-    OIIO_CHECK_NO_THROW(LoadTransformFile(lustre3DtLut));
-
-    // Autodesk color transform format.
-    const std::string ctfTransform("matrix_example4x4.ctf");
-    OIIO_CHECK_NO_THROW(LoadTransformFile(ctfTransform));
-
-    // Academy/ASC common LUT format.
-    const std::string clfRangeTransform("range.clf");
-    OIIO_CHECK_NO_THROW(LoadTransformFile(clfRangeTransform));
-    
-    // Academy/ASC common LUT format.
-    const std::string clfMatTransform("matrix_example.clf");
-    OIIO_CHECK_NO_THROW(LoadTransformFile(clfMatTransform));
-}
-
-OIIO_ADD_TEST(FileTransform, LoadFileFail)
-{
-    // Legacy Lustre 1D LUT files. Similar to supported formats but actually
-    // are different formats.
-    // Test that they are correctly recognized as unreadable.
-    {
-        const std::string lustreOldLut("legacy_slog_to_log_v3_lustre.lut");
-        OIIO_CHECK_THROW_WHAT(LoadTransformFile(lustreOldLut),
-                              OCIO::Exception, "could not be loaded");
-    }
-
-    {
-        const std::string lustreOldLut("legacy_flmlk_desat.lut");
-        OIIO_CHECK_THROW_WHAT(LoadTransformFile(lustreOldLut),
-                              OCIO::Exception, "could not be loaded");
-    }
-
-    // Invalid file.
-    const std::string unKnown("error_unknown_format.txt");
-    OIIO_CHECK_THROW_WHAT(LoadTransformFile(unKnown),
-                          OCIO::Exception, "could not be loaded");
-
-    // Missing file.
-    const std::string missing("missing.file");
-    OIIO_CHECK_THROW_WHAT(LoadTransformFile(missing),
-                          OCIO::Exception, "could not be located");
-}
-
-bool FormatNameFoundByExtension(const std::string & extension, const std::string & formatName)
-{
-    bool foundIt = false;
-    OCIO::FormatRegistry & formatRegistry = OCIO::FormatRegistry::GetInstance();
-
-    OCIO::FileFormatVector possibleFormats;
-    formatRegistry.getFileFormatForExtension(extension, possibleFormats);
-    OCIO::FileFormatVector::const_iterator endFormat = possibleFormats.end();
-    OCIO::FileFormatVector::const_iterator itFormat = possibleFormats.begin();
-    while (itFormat != endFormat && !foundIt)
-    {
-        OCIO::FileFormat * tryFormat = *itFormat;
-
-        if (formatName == tryFormat->getName())
-            foundIt = true;
-
-        ++itFormat;
-    }
-    return foundIt;
-}
-
-bool FormatExtensionFoundByName(const std::string & extension, const std::string & formatName)
-{
-    bool foundIt = false;
-    OCIO::FormatRegistry & formatRegistry = OCIO::FormatRegistry::GetInstance();
-
-    OCIO::FileFormat * fileFormat = formatRegistry.getFileFormatByName(formatName);
-    if (fileFormat)
-    {
-        OCIO::FormatInfoVec formatInfoVec;
-        fileFormat->GetFormatInfo(formatInfoVec);
-
-        for (unsigned int i = 0; i < formatInfoVec.size() && !foundIt; ++i)
-        {
-            if (extension == formatInfoVec[i].extension)
-                foundIt = true;
-
-        }
-    }
-    return foundIt;
-}
-
-OIIO_ADD_TEST(FileTransform, AllFormats)
-{
-    OCIO::FormatRegistry & formatRegistry = OCIO::FormatRegistry::GetInstance();
-    OIIO_CHECK_EQUAL(19, formatRegistry.getNumRawFormats());
-    OIIO_CHECK_EQUAL(23, formatRegistry.getNumFormats(OCIO::FORMAT_CAPABILITY_READ));
-    OIIO_CHECK_EQUAL(8, formatRegistry.getNumFormats(OCIO::FORMAT_CAPABILITY_WRITE));
-
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("3dl", "flame"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("cc", "ColorCorrection"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("ccc", "ColorCorrectionCollection"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("cdl", "ColorDecisionList"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("clf", "Academy/ASC Common LUT Format"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("csp", "cinespace"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("cub", "truelight"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("cube", "iridas_cube"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("cube", "resolve_cube"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("itx", "iridas_itx"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("icc", "International Color Consortium profile"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("look", "iridas_look"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("lut", "houdini"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("lut", "Discreet 1D LUT"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("mga", "pandora_mga"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("spi1d", "spi1d"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("spi3d", "spi3d"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("spimtx", "spimtx"));
-    OIIO_CHECK_ASSERT(FormatNameFoundByExtension("vf", "nukevf"));
-    // When a FileFormat handles 2 "formats" it declares both names
-    // but only exposes one name using the getName() function.
-    OIIO_CHECK_ASSERT(!FormatNameFoundByExtension("3dl", "lustre"));
-    OIIO_CHECK_ASSERT(!FormatNameFoundByExtension("m3d", "pandora_m3d"));
-    OIIO_CHECK_ASSERT(!FormatNameFoundByExtension("icm", "Image Color Matching"));
-    OIIO_CHECK_ASSERT(!FormatNameFoundByExtension("ctf", "Color Transform Format"));
-
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("3dl", "flame"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("3dl", "lustre"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("cc", "ColorCorrection"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("ccc", "ColorCorrectionCollection"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("cdl", "ColorDecisionList"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("clf", "Academy/ASC Common LUT Format"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("ctf", "Color Transform Format"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("csp", "cinespace"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("cub", "truelight"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("cube", "iridas_cube"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("cube", "resolve_cube"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("itx", "iridas_itx"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("icc", "International Color Consortium profile"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("icm", "International Color Consortium profile"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("look", "iridas_look"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("lut", "houdini"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("lut", "Discreet 1D LUT"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("m3d", "pandora_m3d"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("mga", "pandora_mga"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("spi1d", "spi1d"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("spi3d", "spi3d"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("spimtx", "spimtx"));
-    OIIO_CHECK_ASSERT(FormatExtensionFoundByName("vf", "nukevf"));
-}
-
-void ValidateFormatByIndex(OCIO::FormatRegistry &reg, int cap)
-{
-    int numFormat = reg.getNumFormats(cap);
-
-    // Check out of bounds access
-    OIIO_CHECK_EQUAL(0, OCIO::Platform::Strcasecmp(reg.getFormatNameByIndex(cap, -1), ""));
-    OIIO_CHECK_EQUAL(0, OCIO::Platform::Strcasecmp(reg.getFormatExtensionByIndex(cap, -1), ""));
-    OIIO_CHECK_EQUAL(0, OCIO::Platform::Strcasecmp(reg.getFormatNameByIndex(cap, numFormat), ""));
-    OIIO_CHECK_EQUAL(0, OCIO::Platform::Strcasecmp(reg.getFormatExtensionByIndex(cap, numFormat), ""));
-
-    // Check valid access
-    for (int i = 0; i < numFormat; ++i) {
-        OIIO_CHECK_NE(0, OCIO::Platform::Strcasecmp(reg.getFormatNameByIndex(cap, i), ""));
-        OIIO_CHECK_NE(0, OCIO::Platform::Strcasecmp(reg.getFormatExtensionByIndex(cap, i), ""));
-    }
-}
-
-OIIO_ADD_TEST(FileTransform, FormatByIndex)
-{
-    OCIO::FormatRegistry & formatRegistry = OCIO::FormatRegistry::GetInstance();
-    ValidateFormatByIndex(formatRegistry, OCIO::FORMAT_CAPABILITY_WRITE);
-    ValidateFormatByIndex(formatRegistry, OCIO::FORMAT_CAPABILITY_READ);
-}
-
-OIIO_ADD_TEST(FileTransform, Validate)
-{
-    OCIO::FileTransformRcPtr tr = OCIO::FileTransform::Create();
-
-    tr->setSrc("lut3d_17x17x17_32f_12i.clf");
-    OIIO_CHECK_NO_THROW(tr->validate());
-
-    tr->setSrc("");
-    OIIO_CHECK_THROW(tr->validate(), OCIO::Exception);
-}
-
-
-#endif

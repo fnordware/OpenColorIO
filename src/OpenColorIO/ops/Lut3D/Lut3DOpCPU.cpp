@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <algorithm>
 #include <math.h>
@@ -39,13 +14,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "OpTools.h"
 #include "Platform.h"
 #include "SSE.h"
-
-
-// Suppress bogus warning when compiling with gcc
-#if __GNUC__ && __GNUC__ <= 5
-    #pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
-
 
 OCIO_NAMESPACE_ENTER
 {
@@ -84,7 +52,7 @@ private:
 class Lut3DTetrahedralRenderer : public BaseLut3DRenderer
 {
 public:
-    Lut3DTetrahedralRenderer(ConstLut3DOpDataRcPtr & lut);
+    explicit Lut3DTetrahedralRenderer(ConstLut3DOpDataRcPtr & lut);
     virtual ~Lut3DTetrahedralRenderer();
 
     void apply(const void * inImg, void * outImg, long numPixels) const;
@@ -93,7 +61,7 @@ public:
 class Lut3DRenderer : public BaseLut3DRenderer
 {
 public:
-    Lut3DRenderer(ConstLut3DOpDataRcPtr & lut);
+    explicit Lut3DRenderer(ConstLut3DOpDataRcPtr & lut);
     virtual ~Lut3DRenderer();
 
     void apply(const void * inImg, void * outImg, long numPixels) const;
@@ -143,6 +111,7 @@ class InvLut3DRenderer : public OpCPU
     {
     public:
         RangeTree();
+        RangeTree(const RangeTree &) = delete;
 
         // Populate the tree using the LUT values.
         // - gridVector Pointer to the vectorized 3d-LUT values.
@@ -193,7 +162,7 @@ class InvLut3DRenderer : public OpCPU
 
 public:
 
-    InvLut3DRenderer(ConstLut3DOpDataRcPtr & lut);
+    explicit InvLut3DRenderer(ConstLut3DOpDataRcPtr & lut);
     virtual ~InvLut3DRenderer();
 
     virtual void apply(const void * inImg, void * outImg, long numPixels) const;
@@ -351,15 +320,15 @@ BaseLut3DRenderer::~BaseLut3DRenderer()
 
 void BaseLut3DRenderer::updateData(ConstLut3DOpDataRcPtr & lut)
 {
-    m_alphaScale = GetBitDepthMaxValue(lut->getOutputBitDepth())
-                   / GetBitDepthMaxValue(lut->getInputBitDepth());
+    m_alphaScale = (float)(GetBitDepthMaxValue(lut->getOutputBitDepth()))
+                   / (float)GetBitDepthMaxValue(lut->getInputBitDepth());
 
     m_dim = lut->getArray().getLength();
 
     m_maxIdx = (float)(m_dim - 1);
 
     m_step = ((float)m_dim - 1.0f)
-             / GetBitDepthMaxValue(lut->getInputBitDepth());
+             / (float)GetBitDepthMaxValue(lut->getInputBitDepth());
 
 #ifdef USE_SSE
     Platform::AlignedFree(m_optLut);
@@ -1656,9 +1625,9 @@ void InvLut3DRenderer::updateData(ConstLut3DOpDataRcPtr & lut)
     m_tree.initialize(m_grvec.data(), m_dim);
     //m_tree.print();
 
-    float outMax = GetBitDepthMaxValue(lut->getOutputBitDepth());
+    float outMax = (float)GetBitDepthMaxValue(lut->getOutputBitDepth());
 
-    m_alphaScaling = outMax / GetBitDepthMaxValue(lut->getInputBitDepth());
+    m_alphaScaling = outMax / (float)GetBitDepthMaxValue(lut->getInputBitDepth());
 
     // Converts from index units to inDepth units of the original LUT.
     // (Note that inDepth of the original LUT is outDepth of the inverse LUT.)
@@ -1668,7 +1637,7 @@ void InvLut3DRenderer::updateData(ConstLut3DOpDataRcPtr & lut)
 
     // TODO: Should improve this based on actual LUT contents since it
     // is legal for LUT contents to exceed the typical scaling range.
-    m_inMax = GetBitDepthMaxValue(lut->getInputBitDepth());
+    m_inMax = (float)GetBitDepthMaxValue(lut->getInputBitDepth());
 }
 
 void InvLut3DRenderer::extrapolate3DArray(ConstLut3DOpDataRcPtr & lut)
@@ -1698,7 +1667,7 @@ void InvLut3DRenderer::extrapolate3DArray(ConstLut3DOpDataRcPtr & lut)
         }
     }
 
-    const float center = GetBitDepthMaxValue(depth) * 0.5f;
+    const float center = (float)GetBitDepthMaxValue(depth) * 0.5f;
     const float scale = 4.f;
 
     // Extrapolate faces.
@@ -1947,7 +1916,7 @@ void InvLut3DRenderer::apply(const void * inImg, void * outImg, long numPixels) 
     }
 }
 
-OpCPURcPtr GetForwardLut3DRenderer(ConstLut3DOpDataRcPtr & lut)
+ConstOpCPURcPtr GetForwardLut3DRenderer(ConstLut3DOpDataRcPtr & lut)
 {
     const Interpolation interp = lut->getConcreteInterpolation();
     if (interp == INTERP_TETRAHEDRAL)
@@ -1962,7 +1931,7 @@ OpCPURcPtr GetForwardLut3DRenderer(ConstLut3DOpDataRcPtr & lut)
 
 } // anonymous namspace
 
-OpCPURcPtr GetLut3DRenderer(ConstLut3DOpDataRcPtr & lut)
+ConstOpCPURcPtr GetLut3DRenderer(ConstLut3DOpDataRcPtr & lut)
 {
     if (lut->getDirection() == TRANSFORM_DIR_FORWARD)
     {
@@ -1992,15 +1961,17 @@ OCIO_NAMESPACE_EXIT
 namespace OCIO = OCIO_NAMESPACE;
 
 #include <limits>
-#include "unittest.h"
+#include "UnitTest.h"
 
 void Lut3DRendererNaNTest(OCIO::Interpolation interpol)
 {
+    OCIO::FormatMetadataImpl metadata(OCIO::METADATA_ROOT);
+    metadata.addAttribute(OCIO::METADATA_ID, "uid");
+
     OCIO::Lut3DOpDataRcPtr lut =
         std::make_shared<OCIO::Lut3DOpData>(OCIO::BIT_DEPTH_F32,
                                             OCIO::BIT_DEPTH_F32,
-                                            "uid",
-                                            OCIO::OpData::Descriptions(),
+                                            metadata,
                                             interpol,
                                             4);
 
@@ -2009,7 +1980,7 @@ void Lut3DRendererNaNTest(OCIO::Interpolation interpol)
     values[65] += 0.001f;
 
     OCIO::ConstLut3DOpDataRcPtr lutConst = lut;
-    OCIO::OpCPURcPtr renderer = OCIO::GetLut3DRenderer(lutConst);
+    OCIO::ConstOpCPURcPtr renderer = OCIO::GetLut3DRenderer(lutConst);
 
     const float qnan = std::numeric_limits<float>::quiet_NaN();
     const float inf = std::numeric_limits<float>::infinity();
@@ -2020,26 +1991,26 @@ void Lut3DRendererNaNTest(OCIO::Interpolation interpol)
 
     renderer->apply(pixels, pixels, 4);
 
-    OIIO_CHECK_CLOSE(pixels[0], values[0], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[1], values[1], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[2], values[2], 1e-7f);
-    OIIO_CHECK_ASSERT(OCIO::IsNan(pixels[7]));
-    OIIO_CHECK_CLOSE(pixels[8], 1.0f, 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[9], 1.0f, 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[10], 1.0f, 1e-7f);
-    OIIO_CHECK_EQUAL(pixels[11], inf);
-    OIIO_CHECK_CLOSE(pixels[12], 0.0f, 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[13], 0.0f, 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[14], 0.0f, 1e-7f);
-    OIIO_CHECK_EQUAL(pixels[15], -inf);
+    OCIO_CHECK_CLOSE(pixels[0], values[0], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[1], values[1], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[2], values[2], 1e-7f);
+    OCIO_CHECK_ASSERT(OCIO::IsNan(pixels[7]));
+    OCIO_CHECK_CLOSE(pixels[8], 1.0f, 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[9], 1.0f, 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[10], 1.0f, 1e-7f);
+    OCIO_CHECK_EQUAL(pixels[11], inf);
+    OCIO_CHECK_CLOSE(pixels[12], 0.0f, 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[13], 0.0f, 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[14], 0.0f, 1e-7f);
+    OCIO_CHECK_EQUAL(pixels[15], -inf);
 }
 
-OIIO_ADD_TEST(Lut3DRenderer, nan_linear_test)
+OCIO_ADD_TEST(Lut3DRenderer, nan_linear_test)
 {
     Lut3DRendererNaNTest(OCIO::INTERP_LINEAR);
 }
 
-OIIO_ADD_TEST(Lut3DRenderer, nan_tetra_test)
+OCIO_ADD_TEST(Lut3DRenderer, nan_tetra_test)
 {
     Lut3DRendererNaNTest(OCIO::INTERP_TETRAHEDRAL);
 }

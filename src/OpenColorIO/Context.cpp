@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2003-2010 Sony Pictures Imageworks Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <cstring>
 #include <iostream>
@@ -37,6 +12,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HashUtils.h"
 #include "Mutex.h"
 #include "PathUtils.h"
+#include "PrivateTypes.h"
 #include "pystring/pystring.h"
 
 OCIO_NAMESPACE_ENTER
@@ -44,10 +20,8 @@ OCIO_NAMESPACE_ENTER
 
 namespace
 {
-    typedef std::map< std::string, std::string> StringMap;
-    
-    void GetAbsoluteSearchPaths(std::vector<std::string> & searchpaths,
-                                const std::vector<std::string> & pathStrings,
+    void GetAbsoluteSearchPaths(StringVec & searchpaths,
+                                const StringVec & pathStrings,
                                 const std::string & configRootDir,
                                 const EnvMap & map);
 }
@@ -56,7 +30,7 @@ namespace
     {
     public:
         // New platform-agnostic search paths vector.
-        std::vector<std::string> searchPaths_;
+        StringVec searchPaths_;
         // Original concatenated string search paths (keeping it for now to
         // avoid changes to the original API).
         std::string searchPath_;
@@ -375,7 +349,7 @@ namespace
         // Load a relative file reference
         // Prep the search path vector
         // TODO: Cache this prepped vector?
-        std::vector<std::string> searchpaths;
+        StringVec searchpaths;
         GetAbsoluteSearchPaths(searchpaths,
                                getImpl()->searchPaths_,
                                getImpl()->workingDir_,
@@ -432,8 +406,8 @@ namespace
 
 namespace
 {
-    void GetAbsoluteSearchPaths(std::vector<std::string> & searchpaths,
-                                const std::vector<std::string> & pathStrings,
+    void GetAbsoluteSearchPaths(StringVec & searchpaths,
+                                const StringVec & pathStrings,
                                 const std::string & workingDir,
                                 const EnvMap & map)
     {
@@ -465,151 +439,3 @@ namespace
 }
 OCIO_NAMESPACE_EXIT
 
-///////////////////////////////////////////////////////////////////////////////
-
-#ifdef OCIO_UNIT_TEST
-
-namespace OCIO = OCIO_NAMESPACE;
-#include <algorithm>
-#include "PathUtils.h"
-#include "Platform.h"
-#include "unittest.h"
-
-#ifdef OCIO_SOURCE_DIR
-
-#define _STR(x) #x
-#define STR(x) _STR(x)
-
-static const std::string ociodir(STR(OCIO_SOURCE_DIR));
-
-// Method to compare paths.
-std::string SanitizePath(const char* path)
-{
-    std::string s{ OCIO::pystring::os::path::normpath(path) };
-    return s;
-}
-
-OIIO_ADD_TEST(Context, search_paths)
-{
-    OCIO::ContextRcPtr con = OCIO::Context::Create();
-    OIIO_CHECK_EQUAL(con->getNumSearchPaths(), 0);
-    const std::string empty{ "" };
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath()), empty);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath(42)), empty);
-
-    con->addSearchPath(empty.c_str());
-    OIIO_CHECK_EQUAL(con->getNumSearchPaths(), 0);
-
-    const std::string first{ "First" };
-    con->addSearchPath(first.c_str());
-    OIIO_CHECK_EQUAL(con->getNumSearchPaths(), 1);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath()), first);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath(0)), first);
-    con->clearSearchPaths();
-    OIIO_CHECK_EQUAL(con->getNumSearchPaths(), 0);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath()), empty);
-
-    const std::string second{ "Second" };
-    const std::string firstSecond{ first + ":" + second };
-    con->addSearchPath(first.c_str());
-    con->addSearchPath(second.c_str());
-    OIIO_CHECK_EQUAL(con->getNumSearchPaths(), 2);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath()), firstSecond);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath(0)), first);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath(1)), second);
-    con->addSearchPath(empty.c_str());
-    OIIO_CHECK_EQUAL(con->getNumSearchPaths(), 2);
-
-    con->setSearchPath(first.c_str());
-    OIIO_CHECK_EQUAL(con->getNumSearchPaths(), 1);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath()), first);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath(0)), first);
-
-    con->setSearchPath(firstSecond.c_str());
-    OIIO_CHECK_EQUAL(con->getNumSearchPaths(), 2);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath()), firstSecond);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath(0)), first);
-    OIIO_CHECK_EQUAL(std::string(con->getSearchPath(1)), second);
-}
-
-OIIO_ADD_TEST(Context, abs_path)
-{
-    const std::string contextpath(ociodir + std::string("/src/OpenColorIO/Context.cpp"));
-
-    OCIO::ContextRcPtr con = OCIO::Context::Create();
-    con->addSearchPath(ociodir.c_str());
-    con->setStringVar("non_abs", "src/OpenColorIO/Context.cpp");
-    con->setStringVar("is_abs", contextpath.c_str());
-    
-    OIIO_CHECK_NO_THROW(con->resolveFileLocation("${non_abs}"));
-
-    OIIO_CHECK_ASSERT(strcmp(SanitizePath(con->resolveFileLocation("${non_abs}")).c_str(),
-                             SanitizePath(contextpath.c_str()).c_str()) == 0);
-    
-    OIIO_CHECK_NO_THROW(con->resolveFileLocation("${is_abs}"));
-    OIIO_CHECK_ASSERT(strcmp(con->resolveFileLocation("${is_abs}"),
-                             SanitizePath(contextpath.c_str()).c_str()) == 0);
-}
-
-OIIO_ADD_TEST(Context, var_search_path)
-{
-    OCIO::ContextRcPtr context = OCIO::Context::Create();
-    const std::string contextpath(ociodir + std::string("/src/OpenColorIO/Context.cpp"));
-
-    context->setStringVar("SOURCE_DIR", ociodir.c_str());
-    context->addSearchPath("${SOURCE_DIR}/src/OpenColorIO");
-
-    std::string resolvedSource;
-    OIIO_CHECK_NO_THROW(resolvedSource = context->resolveFileLocation("Context.cpp"));
-    OIIO_CHECK_ASSERT(strcmp(SanitizePath(resolvedSource.c_str()).c_str(),
-                             SanitizePath(contextpath.c_str()).c_str()) == 0);
-}
-
-OIIO_ADD_TEST(Context, use_searchpaths)
-{
-    OCIO::ContextRcPtr context = OCIO::Context::Create();
-
-    // Add 2 absolute search paths.
-    const std::string searchPath1 = ociodir + "/src/OpenColorIO";
-    const std::string searchPath2 = ociodir + "/tests/gpu";
-    context->addSearchPath(searchPath1.c_str());
-    context->addSearchPath(searchPath2.c_str());
-
-    std::string resolvedSource;
-    OIIO_CHECK_NO_THROW(resolvedSource = context->resolveFileLocation("Context.cpp"));
-    const std::string res1 = searchPath1 + "/Context.cpp";
-    OIIO_CHECK_ASSERT(strcmp(SanitizePath(resolvedSource.c_str()).c_str(),
-                             SanitizePath(res1.c_str()).c_str()) == 0);
-    OIIO_CHECK_NO_THROW(resolvedSource = context->resolveFileLocation("GPUHelpers.h"));
-    const std::string res2 = searchPath2 + "/GPUHelpers.h";
-    OIIO_CHECK_ASSERT(strcmp(SanitizePath(resolvedSource.c_str()).c_str(),
-                             SanitizePath(res2.c_str()).c_str()) == 0);
-}
-
-OIIO_ADD_TEST(Context, use_searchpaths_workingdir)
-{
-    OCIO::ContextRcPtr context = OCIO::Context::Create();
-
-    // Set working directory and add 2 relative search paths. 
-    const std::string searchPath1 = "src/OpenColorIO";
-    const std::string searchPath2 = "tests/gpu";
-    context->setWorkingDir(ociodir.c_str());
-    context->addSearchPath(searchPath1.c_str());
-    context->addSearchPath(searchPath2.c_str());
-
-    std::string resolvedSource;
-    OIIO_CHECK_NO_THROW(resolvedSource = context->resolveFileLocation("Context.cpp"));
-    const std::string res1 = ociodir + "/" + searchPath1 + "/Context.cpp";
-    OIIO_CHECK_ASSERT(strcmp(SanitizePath(resolvedSource.c_str()).c_str(),
-                             SanitizePath(res1.c_str()).c_str()) == 0);
-    OIIO_CHECK_NO_THROW(resolvedSource = context->resolveFileLocation("GPUHelpers.h"));
-    const std::string res2 = ociodir + "/" + searchPath2 + "/GPUHelpers.h";
-    OIIO_CHECK_ASSERT(strcmp(SanitizePath(resolvedSource.c_str()).c_str(),
-                             SanitizePath(res2.c_str()).c_str()) == 0);
-}
-
-#else
-static_assert(0, "OCIO_SOURCE_DIR should be defined by tests/cpu/CMakeLists.txt");
-#endif // OCIO_SOURCE_DIR
-
-#endif // OCIO_UNIT_TEST

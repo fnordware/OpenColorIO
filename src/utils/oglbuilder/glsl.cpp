@@ -1,40 +1,24 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 
 #ifdef __APPLE__
+
+/* Defined before OpenGL and GLUT includes to avoid deprecation messages */
+#define GL_SILENCE_DEPRECATION
+
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
+
 #elif _WIN32
+
 #include <GL/glew.h>
+
 #else
+
 #include <GL/glew.h>
 #include <GL/gl.h>
+
 #endif
 
 #include <sstream>
@@ -51,17 +35,28 @@ OCIO_NAMESPACE_ENTER
 
 namespace
 {
-    void CheckStatus()
+    bool GetGLError(std::string & error)
     {
         const GLenum glErr = glGetError();
         if(glErr!=GL_NO_ERROR)
         {
 #ifdef __APPLE__
             // Unfortunately no gluErrorString equivalent on Mac.
-            throw Exception("OpenGL Error");
+            error = "OpenGL Error";
 #else
-            throw Exception((const char*)gluErrorString(glErr));
+            error = (const char*)gluErrorString(glErr);
 #endif
+            return true;
+        }
+        return false;
+    }
+
+    void CheckStatus()
+    {
+        std::string error;
+        if (GetGLError(error))
+        {
+            throw Exception(error.c_str());
         }
     }
 
@@ -199,6 +194,37 @@ namespace
 }
 
 
+//////////////////////////////////////////////////////////
+
+void OpenGLBuilder::Uniform::setUp(unsigned program)
+{
+    m_handle = glGetUniformLocation(program, m_name.c_str());
+
+    std::string error;
+    if (GetGLError(error))
+    {
+        std::string err("Shader parameter ");
+        err += m_name;
+        err += " not found: ";
+        throw Exception(err.c_str());
+    }
+}
+
+DynamicPropertyRcPtr & OpenGLBuilder::Uniform::getValue()
+{
+    return m_value;
+}
+
+void OpenGLBuilder::Uniform::use()
+{
+    // Update value.
+    glUniform1f(m_handle, (GLfloat)m_value->getDoubleValue());
+}
+
+
+
+//////////////////////////////////////////////////////////
+
 OpenGLBuilderRcPtr OpenGLBuilder::Create(const GpuShaderDescRcPtr & shaderDesc)
 {
     return OpenGLBuilderRcPtr(new OpenGLBuilder(shaderDesc));
@@ -235,16 +261,16 @@ void OpenGLBuilder::allocateAllTextures(unsigned startIndex)
 {
     deleteAllTextures();
 
-    // This is the first available index for the textures
+    // This is the first available index for the textures.
     m_startIndex = startIndex;
     unsigned currIndex = m_startIndex;
 
-    // Process the 3D LUT first
+    // Process the 3D LUT first.
 
     const unsigned maxTexture3D = m_shaderDesc->getNum3DTextures();
     for(unsigned idx=0; idx<maxTexture3D; ++idx)
     {
-        // 1. Get the information of the 3D LUT
+        // 1. Get the information of the 3D LUT.
 
         const char* name = 0x0;
         const char* uid  = 0x0;
@@ -264,24 +290,24 @@ void OpenGLBuilder::allocateAllTextures(unsigned startIndex)
             throw Exception("The texture values are missing");
         }
 
-        // 2. Allocate the 3D LUT
+        // 2. Allocate the 3D LUT.
 
         unsigned texId = 0;
         AllocateTexture3D(currIndex, texId, interpolation, edgelen, values);
 
-        // 3. Keep the texture id & name for the later enabling
+        // 3. Keep the texture id & name for the later enabling.
 
         m_textureIds.push_back(TextureId(texId, name, GL_TEXTURE_3D));
 
         currIndex++;
     }
 
-    // Process the 1D LUTs
+    // Process the 1D LUTs.
 
     const unsigned maxTexture2D = m_shaderDesc->getNumTextures();
     for(unsigned idx=0; idx<maxTexture2D; ++idx)
     {
-        // 1. Get the information of the 1D LUT
+        // 1. Get the information of the 1D LUT.
 
         const char* name = 0x0;
         const char* uid  = 0x0;
@@ -303,12 +329,12 @@ void OpenGLBuilder::allocateAllTextures(unsigned startIndex)
             throw Exception("The texture values are missing");
         }
 
-        // 2. Allocate the 1D LUT (a 2D texture is needed to hold large LUTs)
+        // 2. Allocate the 1D LUT (a 2D texture is needed to hold large LUTs).
 
         unsigned texId = 0;
         AllocateTexture2D(currIndex, texId, width, height, interpolation, values);
 
-        // 3. Keep the texture id & name for the later enabling
+        // 3. Keep the texture id & name for the later enabling.
 
         unsigned type = (height > 1) ? GL_TEXTURE_2D : GL_TEXTURE_1D;
         m_textureIds.push_back(TextureId(texId, name, type));
@@ -322,7 +348,7 @@ void OpenGLBuilder::deleteAllTextures()
     for(size_t idx=0; idx<max; ++idx)
     {
         const TextureId& data = m_textureIds[idx];
-        glDeleteTextures(1, &data.id);
+        glDeleteTextures(1, &data.m_id);
     }
 
     m_textureIds.clear();
@@ -335,11 +361,41 @@ void OpenGLBuilder::useAllTextures()
     {
         const TextureId& data = m_textureIds[idx];
         glActiveTexture((GLenum)(GL_TEXTURE0 + m_startIndex + idx));
-        glBindTexture(data.type, data.id);
+        glBindTexture(data.m_type, data.m_id);
         glUniform1i(
             glGetUniformLocation(m_program, 
-                                 data.name.c_str()), 
+                                 data.m_name.c_str()), 
                                  GLint(m_startIndex + idx) );
+    }
+}
+
+void OpenGLBuilder::linkAllUniforms()
+{
+    deleteAllUniforms();
+
+    const unsigned maxUniforms = m_shaderDesc->getNumUniforms();
+    for (unsigned idx = 0; idx < maxUniforms; ++idx)
+    {
+        const char * name;
+        DynamicPropertyRcPtr value;
+        m_shaderDesc->getUniform(idx, name, value);
+        // Transfer uniform.
+        m_uniforms.emplace_back(name, value);
+        // Connect uniform with program.
+        m_uniforms.back().setUp(m_program);
+    }
+}
+
+void OpenGLBuilder::deleteAllUniforms()
+{
+    m_uniforms.clear();
+}
+
+void OpenGLBuilder::useAllUniforms()
+{
+    for (auto uniform : m_uniforms)
+    {
+        uniform.use();
     }
 }
 
@@ -370,8 +426,9 @@ unsigned OpenGLBuilder::buildProgram(const std::string & clientShaderProgram)
         m_fragShader = CompileShaderText(GL_FRAGMENT_SHADER, os.str().c_str());
 
         LinkShaders(m_program, m_fragShader);
-
         m_shaderCacheID = shaderCacheID;
+
+        linkAllUniforms();
     }
 
     return m_program;
@@ -389,7 +446,7 @@ unsigned OpenGLBuilder::getProgramHandle()
 
 unsigned OpenGLBuilder::GetTextureMaxWidth()
 {
-    // Arbitrary huge number only to find the limit
+    // Arbitrary huge number only to find the limit.
     static unsigned maxTextureSize = 256 * 1024;
 
     CheckStatus();

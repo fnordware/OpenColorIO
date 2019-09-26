@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <algorithm>
 #include <math.h>
@@ -88,7 +63,7 @@ template<BitDepth inBD, BitDepth outBD>
 class BaseLut1DRenderer : public OpCPU
 {
 public:
-    BaseLut1DRenderer(ConstLut1DOpDataRcPtr & lut);
+    explicit BaseLut1DRenderer(ConstLut1DOpDataRcPtr & lut);
     BaseLut1DRenderer(ConstLut1DOpDataRcPtr & lut, BitDepth outBitDepth);
     virtual ~BaseLut1DRenderer();
 
@@ -150,7 +125,9 @@ template<BitDepth inBD, BitDepth outBD>
 class Lut1DRendererHalfCode : public BaseLut1DRenderer<inBD, outBD>
 {
 public:
-    Lut1DRendererHalfCode(ConstLut1DOpDataRcPtr & lut)
+    Lut1DRendererHalfCode() = delete;
+
+    explicit Lut1DRendererHalfCode(ConstLut1DOpDataRcPtr & lut)
         : BaseLut1DRenderer<inBD, outBD>(lut) {}
 
     Lut1DRendererHalfCode(ConstLut1DOpDataRcPtr & lut, BitDepth outBitDepth)
@@ -163,7 +140,9 @@ template<BitDepth inBD, BitDepth outBD>
 class Lut1DRenderer : public BaseLut1DRenderer<inBD, outBD>
 {
 public:
-    Lut1DRenderer(ConstLut1DOpDataRcPtr & lut) 
+    Lut1DRenderer() = delete;
+
+    explicit Lut1DRenderer(ConstLut1DOpDataRcPtr & lut) 
         : BaseLut1DRenderer<inBD, outBD>(lut) {}
 
     Lut1DRenderer(ConstLut1DOpDataRcPtr & lut, BitDepth outBitDepth)
@@ -176,7 +155,9 @@ template<BitDepth inBD, BitDepth outBD>
 class Lut1DRendererHueAdjust : public Lut1DRenderer<inBD, outBD>
 {
 public:
-    Lut1DRendererHueAdjust(ConstLut1DOpDataRcPtr & lut)
+    Lut1DRendererHueAdjust() = delete;
+
+    explicit Lut1DRendererHueAdjust(ConstLut1DOpDataRcPtr & lut)
         :  Lut1DRenderer<inBD, outBD>(lut, BIT_DEPTH_F32) {}
 
     void apply(const void * inImg, void * outImg, long numPixels) const override;
@@ -186,7 +167,9 @@ template<BitDepth inBD, BitDepth outBD>
 class Lut1DRendererHalfCodeHueAdjust : public Lut1DRendererHalfCode<inBD, outBD>
 {
 public:
-    Lut1DRendererHalfCodeHueAdjust(ConstLut1DOpDataRcPtr & lut)
+    Lut1DRendererHalfCodeHueAdjust() = delete;
+
+    explicit Lut1DRendererHalfCodeHueAdjust(ConstLut1DOpDataRcPtr & lut)
         : Lut1DRendererHalfCode<inBD, outBD>(lut, BIT_DEPTH_F32) {}
 
     void apply(const void * inImg, void * outImg, long numPixels) const override;
@@ -226,7 +209,10 @@ template<BitDepth inBD, BitDepth outBD>
 class InvLut1DRenderer : public OpCPU
 {
 public:
-    InvLut1DRenderer(ConstLut1DOpDataRcPtr & lut);
+    InvLut1DRenderer() = delete;
+    explicit InvLut1DRenderer(ConstLut1DOpDataRcPtr & lut);
+    InvLut1DRenderer(const InvLut1DRenderer&) = delete;
+    InvLut1DRenderer& operator=(const InvLut1DRenderer&) = delete;
     virtual ~InvLut1DRenderer();
 
     void apply(const void * inImg, void * outImg, long numPixels) const override;
@@ -247,18 +233,16 @@ protected:
     std::vector<float> m_tmpLutG;
     std::vector<float> m_tmpLutB;
     float              m_alphaScaling;  // Bit-depth scale factor for alpha channel.
-
-private:
-    InvLut1DRenderer() = delete;
-    InvLut1DRenderer(const InvLut1DRenderer&) = delete;
-    InvLut1DRenderer& operator=(const InvLut1DRenderer&) = delete;
 };
 
 template<BitDepth inBD, BitDepth outBD>
 class InvLut1DRendererHalfCode : public InvLut1DRenderer<inBD, outBD>
 {
 public:
-    InvLut1DRendererHalfCode(ConstLut1DOpDataRcPtr & lut);
+    InvLut1DRendererHalfCode() = delete;
+    explicit InvLut1DRendererHalfCode(ConstLut1DOpDataRcPtr & lut);
+    InvLut1DRendererHalfCode(const InvLut1DRendererHalfCode &) = delete;
+    InvLut1DRendererHalfCode& operator=(const InvLut1DRendererHalfCode &) = delete;
     virtual ~InvLut1DRendererHalfCode();
 
     void updateData(ConstLut1DOpDataRcPtr & lut) override;
@@ -270,7 +254,7 @@ template<BitDepth inBD, BitDepth outBD>
 class InvLut1DRendererHueAdjust : public InvLut1DRenderer<inBD, outBD>
 {
 public:
-    InvLut1DRendererHueAdjust(ConstLut1DOpDataRcPtr & lut);
+    explicit InvLut1DRendererHueAdjust(ConstLut1DOpDataRcPtr & lut);
  
     void apply(const void * inImg, void * outImg, long numPixels) const override;
 };
@@ -279,7 +263,7 @@ template<BitDepth inBD, BitDepth outBD>
 class InvLut1DRendererHalfCodeHueAdjust : public InvLut1DRendererHalfCode<inBD, outBD>
 {
 public:
-    InvLut1DRendererHalfCodeHueAdjust(ConstLut1DOpDataRcPtr & lut);
+    explicit InvLut1DRendererHalfCodeHueAdjust(ConstLut1DOpDataRcPtr & lut);
 
     void apply(const void * inImg, void * outImg, long numPixels) const override;
 };
@@ -357,7 +341,7 @@ void BaseLut1DRenderer<inBD, outBD>::updateData(ConstLut1DOpDataRcPtr & lut)
 
     m_dim = lut->getArray().getLength();
 
-    const float outMax = GetBitDepthMaxValue(outBD);
+    const float outMax = (float)GetBitDepthMaxValue(outBD);
     const float outMin = 0.0f;
 
     // (Used by L_ADJUST macro.)
@@ -414,11 +398,11 @@ void BaseLut1DRenderer<inBD, outBD>::updateData(ConstLut1DOpDataRcPtr & lut)
         }
     }
 
-    m_alphaScaling = GetBitDepthMaxValue(outBD)
-                     / GetBitDepthMaxValue(inBD);
+    m_alphaScaling = (float)GetBitDepthMaxValue(outBD)
+                     / (float)GetBitDepthMaxValue(inBD);
 
     m_step = ((float)m_dim - 1.0f)
-                 / GetBitDepthMaxValue(lut->getInputBitDepth());
+             / (float)GetBitDepthMaxValue(lut->getInputBitDepth());
 
     m_dimMinusOne = m_dim - 1.0f;
 }
@@ -1232,9 +1216,9 @@ void InvLut1DRenderer<inBD, outBD>::updateData(ConstLut1DOpDataRcPtr & lut)
         }
     }
 
-    const float outMax = GetBitDepthMaxValue(lut->getOutputBitDepth());
+    const float outMax = (float)GetBitDepthMaxValue(lut->getOutputBitDepth());
 
-    m_alphaScaling = outMax / GetBitDepthMaxValue(lut->getInputBitDepth());
+    m_alphaScaling = outMax / (float)GetBitDepthMaxValue(lut->getInputBitDepth());
 
     // Converts from index units to inDepth units of the original LUT.
     // (Note that inDepth of the original LUT is outDepth of the inverse LUT.)
@@ -1434,9 +1418,9 @@ void InvLut1DRendererHalfCode<inBD, outBD>::updateData(ConstLut1DOpDataRcPtr & l
         }
     }
 
-    const float outMax = GetBitDepthMaxValue(lut->getOutputBitDepth());
+    const float outMax = (float)GetBitDepthMaxValue(lut->getOutputBitDepth());
 
-    this->m_alphaScaling = outMax / GetBitDepthMaxValue(lut->getInputBitDepth());
+    this->m_alphaScaling = outMax / (float)GetBitDepthMaxValue(lut->getInputBitDepth());
 
     // Note the difference for half domain LUTs, since the distance between
     // between adjacent entries is not constant, we cannot roll it into the
@@ -1626,7 +1610,7 @@ OpCPURcPtr GetForwardLut1DRenderer(ConstLut1DOpDataRcPtr & lut)
     //     may not be changed.
     if (lut->isInputHalfDomain())
     {
-        if (lut->getHueAdjust() == Lut1DOpData::HUE_NONE)
+        if (lut->getHueAdjust() == HUE_NONE)
         {
             return std::make_shared< Lut1DRendererHalfCode<inBD, outBD> >(lut);
         }
@@ -1637,7 +1621,7 @@ OpCPURcPtr GetForwardLut1DRenderer(ConstLut1DOpDataRcPtr & lut)
     }
     else
     {
-        if (lut->getHueAdjust() == Lut1DOpData::HUE_NONE)
+        if (lut->getHueAdjust() == HUE_NONE)
         {
             return std::make_shared< Lut1DRenderer<inBD, outBD> >(lut);
         }
@@ -1651,7 +1635,7 @@ OpCPURcPtr GetForwardLut1DRenderer(ConstLut1DOpDataRcPtr & lut)
 }
 
 template<BitDepth inBD, BitDepth outBD>
-OpCPURcPtr GetLut1DRenderer_OutBitDepth(ConstLut1DOpDataRcPtr & lut)
+ConstOpCPURcPtr GetLut1DRenderer_OutBitDepth(ConstLut1DOpDataRcPtr & lut)
 {
     if (lut->getDirection() == TRANSFORM_DIR_FORWARD)
     {
@@ -1670,7 +1654,7 @@ OpCPURcPtr GetLut1DRenderer_OutBitDepth(ConstLut1DOpDataRcPtr & lut)
         {
             if (lut->isInputHalfDomain())
             {
-                if (lut->getHueAdjust() == Lut1DOpData::HUE_NONE)
+                if (lut->getHueAdjust() == HUE_NONE)
                 {
                     return std::make_shared< InvLut1DRendererHalfCode<inBD, outBD> >(lut);
                 }
@@ -1681,7 +1665,7 @@ OpCPURcPtr GetLut1DRenderer_OutBitDepth(ConstLut1DOpDataRcPtr & lut)
             }
             else
             {
-                if (lut->getHueAdjust() == Lut1DOpData::HUE_NONE)
+                if (lut->getHueAdjust() == HUE_NONE)
                 {
                     return std::make_shared< InvLut1DRenderer<inBD, outBD> >(lut);
                 }
@@ -1695,7 +1679,7 @@ OpCPURcPtr GetLut1DRenderer_OutBitDepth(ConstLut1DOpDataRcPtr & lut)
 }
 
 template<BitDepth inBD>
-OpCPURcPtr GetLut1DRenderer_InBitDepth(ConstLut1DOpDataRcPtr & lut, BitDepth outBD)
+ConstOpCPURcPtr GetLut1DRenderer_InBitDepth(ConstLut1DOpDataRcPtr & lut, BitDepth outBD)
 {
     if(lut->getOutputBitDepth()!=outBD)
     {
@@ -1725,10 +1709,10 @@ OpCPURcPtr GetLut1DRenderer_InBitDepth(ConstLut1DOpDataRcPtr & lut, BitDepth out
     }
 
     throw Exception("Unsupported output bit depth");
-    return OpCPURcPtr();
+    return ConstOpCPURcPtr();
 }
 
-OpCPURcPtr GetLut1DRenderer(ConstLut1DOpDataRcPtr & lut, BitDepth inBD, BitDepth outBD)
+ConstOpCPURcPtr GetLut1DRenderer(ConstLut1DOpDataRcPtr & lut, BitDepth inBD, BitDepth outBD)
 {
     if(lut->getInputBitDepth()!=inBD)
     {
@@ -1758,7 +1742,7 @@ OpCPURcPtr GetLut1DRenderer(ConstLut1DOpDataRcPtr & lut, BitDepth inBD, BitDepth
     }
 
     throw Exception("Unsupported input bit depth");
-    return OpCPURcPtr();
+    return ConstOpCPURcPtr();
 }
 
 
@@ -1772,10 +1756,10 @@ OCIO_NAMESPACE_EXIT
 
 namespace OCIO = OCIO_NAMESPACE;
 
-#include "unittest.h"
+#include "UnitTest.h"
 
 
-OIIO_ADD_TEST(GamutMapUtil, order3_test)
+OCIO_ADD_TEST(GamutMapUtil, order3_test)
 {
     const float posinf = std::numeric_limits<float>::infinity();
     const float qnan = std::numeric_limits<float>::quiet_NaN();
@@ -1785,45 +1769,45 @@ OIIO_ADD_TEST(GamutMapUtil, order3_test)
         const float RGB[] = { 65504.f, -qnan, 0.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 2);
-        OIIO_CHECK_EQUAL(mid, 1);
-        OIIO_CHECK_EQUAL(min, 0);
+        OCIO_CHECK_EQUAL(max, 2);
+        OCIO_CHECK_EQUAL(mid, 1);
+        OCIO_CHECK_EQUAL(min, 0);
     }
     // Triple NaN test.
     {
     const float RGB[] = { qnan, qnan, -qnan };
     int min, mid, max;
     OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-    OIIO_CHECK_EQUAL(max, 2);
-    OIIO_CHECK_EQUAL(mid, 1);
-    OIIO_CHECK_EQUAL(min, 0);
+    OCIO_CHECK_EQUAL(max, 2);
+    OCIO_CHECK_EQUAL(mid, 1);
+    OCIO_CHECK_EQUAL(min, 0);
     }
     // -Inf test.
     {
         const float RGB[] = { 65504.f, -posinf, 0.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 0);
-        OIIO_CHECK_EQUAL(mid, 2);
-        OIIO_CHECK_EQUAL(min, 1);
+        OCIO_CHECK_EQUAL(max, 0);
+        OCIO_CHECK_EQUAL(mid, 2);
+        OCIO_CHECK_EQUAL(min, 1);
     }
     // Inf test.
     {
         const float RGB[] = { 0.f, posinf, -65504.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 1);
-        OIIO_CHECK_EQUAL(mid, 0);
-        OIIO_CHECK_EQUAL(min, 2);
+        OCIO_CHECK_EQUAL(max, 1);
+        OCIO_CHECK_EQUAL(mid, 0);
+        OCIO_CHECK_EQUAL(min, 2);
     }
     // Double Inf test.
     {
         const float RGB[] = { posinf, posinf, -65504.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 1);
-        OIIO_CHECK_EQUAL(mid, 0);
-        OIIO_CHECK_EQUAL(min, 2);
+        OCIO_CHECK_EQUAL(max, 1);
+        OCIO_CHECK_EQUAL(mid, 0);
+        OCIO_CHECK_EQUAL(min, 2);
     }
 
     // Equal values.
@@ -1833,9 +1817,9 @@ OIIO_ADD_TEST(GamutMapUtil, order3_test)
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
         // In this case we only really care that they are distinct and in [0,2]
         // so this test could be changed (it is ok, but overly restrictive).
-        OIIO_CHECK_EQUAL(max, 2);
-        OIIO_CHECK_EQUAL(mid, 1);
-        OIIO_CHECK_EQUAL(min, 0);
+        OCIO_CHECK_EQUAL(max, 2);
+        OCIO_CHECK_EQUAL(mid, 1);
+        OCIO_CHECK_EQUAL(min, 0);
     }
 
     // Now test the six typical possibilities.
@@ -1843,54 +1827,54 @@ OIIO_ADD_TEST(GamutMapUtil, order3_test)
         const float RGB[] = { 3.f, 2.f, 1.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 0);
-        OIIO_CHECK_EQUAL(mid, 1);
-        OIIO_CHECK_EQUAL(min, 2);
+        OCIO_CHECK_EQUAL(max, 0);
+        OCIO_CHECK_EQUAL(mid, 1);
+        OCIO_CHECK_EQUAL(min, 2);
     }
     {
         const float RGB[] = { -3.f, -2.f, 1.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 2);
-        OIIO_CHECK_EQUAL(mid, 1);
-        OIIO_CHECK_EQUAL(min, 0);
+        OCIO_CHECK_EQUAL(max, 2);
+        OCIO_CHECK_EQUAL(mid, 1);
+        OCIO_CHECK_EQUAL(min, 0);
     }
     {
         const float RGB[] = { -3.f, 2.f, 1.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 1);
-        OIIO_CHECK_EQUAL(mid, 2);
-        OIIO_CHECK_EQUAL(min, 0);
+        OCIO_CHECK_EQUAL(max, 1);
+        OCIO_CHECK_EQUAL(mid, 2);
+        OCIO_CHECK_EQUAL(min, 0);
     }
     {
         const float RGB[] = { -0.3f, 2.f, -1.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 1);
-        OIIO_CHECK_EQUAL(mid, 0);
-        OIIO_CHECK_EQUAL(min, 2);
+        OCIO_CHECK_EQUAL(max, 1);
+        OCIO_CHECK_EQUAL(mid, 0);
+        OCIO_CHECK_EQUAL(min, 2);
     }
     {
         const float RGB[] = { 3.f, -2.f, 1.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 0);
-        OIIO_CHECK_EQUAL(mid, 2);
-        OIIO_CHECK_EQUAL(min, 1);
+        OCIO_CHECK_EQUAL(max, 0);
+        OCIO_CHECK_EQUAL(mid, 2);
+        OCIO_CHECK_EQUAL(min, 1);
     }
     {
         const float RGB[] = { 3.f, -2.f, 10.f };
         int min, mid, max;
         OCIO::GamutMapUtils::Order3(RGB, min, mid, max);
-        OIIO_CHECK_EQUAL(max, 2);
-        OIIO_CHECK_EQUAL(mid, 0);
-        OIIO_CHECK_EQUAL(min, 1);
+        OCIO_CHECK_EQUAL(max, 2);
+        OCIO_CHECK_EQUAL(mid, 0);
+        OCIO_CHECK_EQUAL(min, 1);
     }
 
 }
 
-OIIO_ADD_TEST(Lut1DRenderer, nan_test)
+OCIO_ADD_TEST(Lut1DRenderer, nan_test)
 {
     OCIO::Lut1DOpDataRcPtr lut =
         std::make_shared<OCIO::Lut1DOpData>(OCIO::BIT_DEPTH_F32,
@@ -1910,7 +1894,7 @@ OIIO_ADD_TEST(Lut1DRenderer, nan_test)
     values[21] = 1.0f;      values[22] = 1.0f;      values[23] = 1.0f;
 
     OCIO::ConstLut1DOpDataRcPtr lutConst = lut;
-    OCIO::OpCPURcPtr renderer 
+    OCIO::ConstOpCPURcPtr renderer 
         = OCIO::GetLut1DRenderer(lutConst, OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32);
 
     const float qnan = std::numeric_limits<float>::quiet_NaN();
@@ -1925,25 +1909,25 @@ OIIO_ADD_TEST(Lut1DRenderer, nan_test)
 
     renderer->apply(pixels, pixels, 6);
 
-    OIIO_CHECK_CLOSE(pixels[0], values[0], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[5], values[1], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[10], values[2], 1e-7f);
-    OIIO_CHECK_ASSERT(OCIO::IsNan(pixels[15]));
-    OIIO_CHECK_CLOSE(pixels[16], values[21], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[17], values[22], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[18], values[23], 1e-7f);
-    OIIO_CHECK_EQUAL(pixels[19], inf);
-    OIIO_CHECK_CLOSE(pixels[20], values[0], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[21], values[1], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[22], values[2], 1e-7f);
-    OIIO_CHECK_EQUAL(pixels[23], -inf);
+    OCIO_CHECK_CLOSE(pixels[0], values[0], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[5], values[1], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[10], values[2], 1e-7f);
+    OCIO_CHECK_ASSERT(OCIO::IsNan(pixels[15]));
+    OCIO_CHECK_CLOSE(pixels[16], values[21], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[17], values[22], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[18], values[23], 1e-7f);
+    OCIO_CHECK_EQUAL(pixels[19], inf);
+    OCIO_CHECK_CLOSE(pixels[20], values[0], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[21], values[1], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[22], values[2], 1e-7f);
+    OCIO_CHECK_EQUAL(pixels[23], -inf);
 }
 
-OIIO_ADD_TEST(Lut1DRenderer, nan_half_test)
+OCIO_ADD_TEST(Lut1DRenderer, nan_half_test)
 {
     OCIO::Lut1DOpDataRcPtr lut = std::make_shared<OCIO::Lut1DOpData>(
         OCIO::BIT_DEPTH_F16, OCIO::BIT_DEPTH_F32,
-        "", OCIO::OpData::Descriptions(),
+        OCIO::FormatMetadataImpl(OCIO::METADATA_ROOT),
         OCIO::INTERP_LINEAR,
         OCIO::Lut1DOpData::LUT_INPUT_HALF_CODE);
 
@@ -1957,7 +1941,7 @@ OIIO_ADD_TEST(Lut1DRenderer, nan_half_test)
 
     lut->setInputBitDepth(OCIO::BIT_DEPTH_F32);
     OCIO::ConstLut1DOpDataRcPtr lutConst = lut;
-    OCIO::OpCPURcPtr renderer 
+    OCIO::ConstOpCPURcPtr renderer 
         = OCIO::GetLut1DRenderer(lutConst, OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32);
 
     const float qnan = std::numeric_limits<float>::quiet_NaN();
@@ -1971,13 +1955,13 @@ OIIO_ADD_TEST(Lut1DRenderer, nan_half_test)
     // This verifies that a half-domain Lut1D can map NaNs to whatever the LUT author wants.
     // In this test, a different value for R, G, and B.
 
-    OIIO_CHECK_CLOSE(pixels[0], values[nanIdRed], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[5], values[nanIdRed + 1], 1e-7f);
-    OIIO_CHECK_CLOSE(pixels[10], values[nanIdRed + 2], 1e-7f);
-    OIIO_CHECK_ASSERT(OCIO::IsNan(pixels[15]));
+    OCIO_CHECK_CLOSE(pixels[0], values[nanIdRed], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[5], values[nanIdRed + 1], 1e-7f);
+    OCIO_CHECK_CLOSE(pixels[10], values[nanIdRed + 2], 1e-7f);
+    OCIO_CHECK_ASSERT(OCIO::IsNan(pixels[15]));
 }
 
-OIIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
+OCIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
 {
     // Unit test to validate the pixel bit depth processing with the 1D LUT.
 
@@ -2267,37 +2251,37 @@ OIIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
     // Processing from UINT8 to UINT8.
     {
         OCIO::ConstLut1DOpDataRcPtr constLut = lutData;
-        OCIO::OpCPURcPtr cpuOp
+        OCIO::ConstOpCPURcPtr cpuOp
             = OCIO::GetLut1DRenderer(constLut, OCIO::BIT_DEPTH_UINT8, OCIO::BIT_DEPTH_UINT8);
 
         const bool isLookup
-            = OCIO::DynamicPtrCast<OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
-                                                           OCIO::BIT_DEPTH_UINT8>>(cpuOp)->isLookup();
-        OIIO_CHECK_ASSERT(isLookup);
+            = OCIO::DynamicPtrCast<const OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
+                                                                 OCIO::BIT_DEPTH_UINT8>>(cpuOp)->isLookup();
+        OCIO_CHECK_ASSERT(isLookup);
 
         std::vector<uint8_t> outImg(NB_PIXELS * 4, 0);
 
-        OIIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
+        OCIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
 
-        OIIO_CHECK_EQUAL(outImg[ 0],   0);
-        OIIO_CHECK_EQUAL(outImg[ 1],   0);
-        OIIO_CHECK_EQUAL(outImg[ 2],   0);
-        OIIO_CHECK_EQUAL(outImg[ 3],   0);
+        OCIO_CHECK_EQUAL(outImg[ 0],   0);
+        OCIO_CHECK_EQUAL(outImg[ 1],   0);
+        OCIO_CHECK_EQUAL(outImg[ 2],   0);
+        OCIO_CHECK_EQUAL(outImg[ 3],   0);
 
-        OIIO_CHECK_EQUAL(outImg[ 4],  17);
-        OIIO_CHECK_EQUAL(outImg[ 5],  18);
-        OIIO_CHECK_EQUAL(outImg[ 6],  18);
-        OIIO_CHECK_EQUAL(outImg[ 7], 255);
+        OCIO_CHECK_EQUAL(outImg[ 4],  17);
+        OCIO_CHECK_EQUAL(outImg[ 5],  18);
+        OCIO_CHECK_EQUAL(outImg[ 6],  18);
+        OCIO_CHECK_EQUAL(outImg[ 7], 255);
 
-        OIIO_CHECK_EQUAL(outImg[ 8], 182);
-        OIIO_CHECK_EQUAL(outImg[ 9], 185);
-        OIIO_CHECK_EQUAL(outImg[10], 188);
-        OIIO_CHECK_EQUAL(outImg[11],   0);
+        OCIO_CHECK_EQUAL(outImg[ 8], 182);
+        OCIO_CHECK_EQUAL(outImg[ 9], 185);
+        OCIO_CHECK_EQUAL(outImg[10], 188);
+        OCIO_CHECK_EQUAL(outImg[11],   0);
 
-        OIIO_CHECK_EQUAL(outImg[12], 255);
-        OIIO_CHECK_EQUAL(outImg[13], 255);
-        OIIO_CHECK_EQUAL(outImg[14], 255);
-        OIIO_CHECK_EQUAL(outImg[15], 255);
+        OCIO_CHECK_EQUAL(outImg[12], 255);
+        OCIO_CHECK_EQUAL(outImg[13], 255);
+        OCIO_CHECK_EQUAL(outImg[14], 255);
+        OCIO_CHECK_EQUAL(outImg[15], 255);
     }
 
     // Processing from UINT8 to UINT8, using the inverse LUT.
@@ -2305,37 +2289,37 @@ OIIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
         OCIO::Lut1DOpDataRcPtr lutDataCloned = lutData->inverse();
         OCIO::ConstLut1DOpDataRcPtr constLut = lutDataCloned;
 
-        OCIO::OpCPURcPtr cpuOp
+        OCIO::ConstOpCPURcPtr cpuOp
             = OCIO::GetLut1DRenderer(constLut, OCIO::BIT_DEPTH_UINT8, OCIO::BIT_DEPTH_UINT8);
 
         const bool isLookup
-            = OCIO::DynamicPtrCast<OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
-                                                           OCIO::BIT_DEPTH_UINT8>>(cpuOp)->isLookup();
-        OIIO_CHECK_ASSERT(isLookup);
+            = OCIO::DynamicPtrCast<const OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
+                                                                 OCIO::BIT_DEPTH_UINT8>>(cpuOp)->isLookup();
+        OCIO_CHECK_ASSERT(isLookup);
 
         std::vector<uint8_t> outImg(NB_PIXELS * 4, 0);
 
-        OIIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
+        OCIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
 
-        OIIO_CHECK_EQUAL(outImg[ 0],  24);
-        OIIO_CHECK_EQUAL(outImg[ 1],  25);
-        OIIO_CHECK_EQUAL(outImg[ 2],  27);
-        OIIO_CHECK_EQUAL(outImg[ 3],   0);
+        OCIO_CHECK_EQUAL(outImg[ 0],  24);
+        OCIO_CHECK_EQUAL(outImg[ 1],  25);
+        OCIO_CHECK_EQUAL(outImg[ 2],  27);
+        OCIO_CHECK_EQUAL(outImg[ 3],   0);
 
-        OIIO_CHECK_EQUAL(outImg[ 4],  84);
-        OIIO_CHECK_EQUAL(outImg[ 5],  85);
-        OIIO_CHECK_EQUAL(outImg[ 6],  86);
-        OIIO_CHECK_EQUAL(outImg[ 7], 255);
+        OCIO_CHECK_EQUAL(outImg[ 4],  84);
+        OCIO_CHECK_EQUAL(outImg[ 5],  85);
+        OCIO_CHECK_EQUAL(outImg[ 6],  86);
+        OCIO_CHECK_EQUAL(outImg[ 7], 255);
 
-        OIIO_CHECK_EQUAL(outImg[ 8], 139);
-        OIIO_CHECK_EQUAL(outImg[ 9], 139);
-        OIIO_CHECK_EQUAL(outImg[10], 140);
-        OIIO_CHECK_EQUAL(outImg[11],   0);
+        OCIO_CHECK_EQUAL(outImg[ 8], 139);
+        OCIO_CHECK_EQUAL(outImg[ 9], 139);
+        OCIO_CHECK_EQUAL(outImg[10], 140);
+        OCIO_CHECK_EQUAL(outImg[11],   0);
 
-        OIIO_CHECK_EQUAL(outImg[12], 164);
-        OIIO_CHECK_EQUAL(outImg[13], 167);
-        OIIO_CHECK_EQUAL(outImg[14], 170);
-        OIIO_CHECK_EQUAL(outImg[15], 255);
+        OCIO_CHECK_EQUAL(outImg[12], 164);
+        OCIO_CHECK_EQUAL(outImg[13], 167);
+        OCIO_CHECK_EQUAL(outImg[14], 170);
+        OCIO_CHECK_EQUAL(outImg[15], 255);
     }
 
     // Processing from UINT8 to UINT16.
@@ -2345,37 +2329,37 @@ OIIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
 
         OCIO::ConstLut1DOpDataRcPtr constLut = lutDataCloned;
 
-        OCIO::OpCPURcPtr cpuOp
+        OCIO::ConstOpCPURcPtr cpuOp
             = OCIO::GetLut1DRenderer(constLut, OCIO::BIT_DEPTH_UINT8, OCIO::BIT_DEPTH_UINT16);
 
         const bool isLookup
-            = OCIO::DynamicPtrCast<OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
-                                                           OCIO::BIT_DEPTH_UINT16>>(cpuOp)->isLookup();
-        OIIO_CHECK_ASSERT(isLookup);
+            = OCIO::DynamicPtrCast<const OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
+                                                                 OCIO::BIT_DEPTH_UINT16>>(cpuOp)->isLookup();
+        OCIO_CHECK_ASSERT(isLookup);
 
         std::vector<uint16_t> outImg(NB_PIXELS * 4, 0);
 
-        OIIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
+        OCIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
 
-        OIIO_CHECK_EQUAL(outImg[ 0], uint16_outImg[ 0]);
-        OIIO_CHECK_EQUAL(outImg[ 1], uint16_outImg[ 1]);
-        OIIO_CHECK_EQUAL(outImg[ 2], uint16_outImg[ 2]);
-        OIIO_CHECK_EQUAL(outImg[ 3], uint16_outImg[ 3]);
+        OCIO_CHECK_EQUAL(outImg[ 0], uint16_outImg[ 0]);
+        OCIO_CHECK_EQUAL(outImg[ 1], uint16_outImg[ 1]);
+        OCIO_CHECK_EQUAL(outImg[ 2], uint16_outImg[ 2]);
+        OCIO_CHECK_EQUAL(outImg[ 3], uint16_outImg[ 3]);
 
-        OIIO_CHECK_EQUAL(outImg[ 4], uint16_outImg[ 4]);
-        OIIO_CHECK_EQUAL(outImg[ 5], uint16_outImg[ 5]);
-        OIIO_CHECK_EQUAL(outImg[ 6], uint16_outImg[ 6]);
-        OIIO_CHECK_EQUAL(outImg[ 7], uint16_outImg[ 7]);
+        OCIO_CHECK_EQUAL(outImg[ 4], uint16_outImg[ 4]);
+        OCIO_CHECK_EQUAL(outImg[ 5], uint16_outImg[ 5]);
+        OCIO_CHECK_EQUAL(outImg[ 6], uint16_outImg[ 6]);
+        OCIO_CHECK_EQUAL(outImg[ 7], uint16_outImg[ 7]);
 
-        OIIO_CHECK_EQUAL(outImg[ 8], uint16_outImg[ 8]);
-        OIIO_CHECK_EQUAL(outImg[ 9], uint16_outImg[ 9]);
-        OIIO_CHECK_EQUAL(outImg[10], uint16_outImg[10]);
-        OIIO_CHECK_EQUAL(outImg[11], uint16_outImg[11]);
+        OCIO_CHECK_EQUAL(outImg[ 8], uint16_outImg[ 8]);
+        OCIO_CHECK_EQUAL(outImg[ 9], uint16_outImg[ 9]);
+        OCIO_CHECK_EQUAL(outImg[10], uint16_outImg[10]);
+        OCIO_CHECK_EQUAL(outImg[11], uint16_outImg[11]);
 
-        OIIO_CHECK_EQUAL(outImg[12], uint16_outImg[12]);
-        OIIO_CHECK_EQUAL(outImg[13], uint16_outImg[13]);
-        OIIO_CHECK_EQUAL(outImg[14], uint16_outImg[14]);
-        OIIO_CHECK_EQUAL(outImg[15], uint16_outImg[15]);
+        OCIO_CHECK_EQUAL(outImg[12], uint16_outImg[12]);
+        OCIO_CHECK_EQUAL(outImg[13], uint16_outImg[13]);
+        OCIO_CHECK_EQUAL(outImg[14], uint16_outImg[14]);
+        OCIO_CHECK_EQUAL(outImg[15], uint16_outImg[15]);
     }
 
     // Processing from UINT8 to F16.
@@ -2385,37 +2369,37 @@ OIIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
 
         OCIO::ConstLut1DOpDataRcPtr constLut = lutDataCloned;
 
-        OCIO::OpCPURcPtr cpuOp
+        OCIO::ConstOpCPURcPtr cpuOp
             = OCIO::GetLut1DRenderer(constLut, OCIO::BIT_DEPTH_UINT8, OCIO::BIT_DEPTH_F16);
 
         const bool isLookup
-            = OCIO::DynamicPtrCast<OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
-                                                           OCIO::BIT_DEPTH_F16>>(cpuOp)->isLookup();
-        OIIO_CHECK_ASSERT(isLookup);
+            = OCIO::DynamicPtrCast<const OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
+                                                                 OCIO::BIT_DEPTH_F16>>(cpuOp)->isLookup();
+        OCIO_CHECK_ASSERT(isLookup);
 
         std::vector<half> outImg(NB_PIXELS * 4, 0);
 
-        OIIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
+        OCIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
 
-        OIIO_CHECK_EQUAL(outImg[ 0], 0.0f);
-        OIIO_CHECK_EQUAL(outImg[ 1], 0.0f);
-        OIIO_CHECK_EQUAL(outImg[ 2], 0.0f);
-        OIIO_CHECK_EQUAL(outImg[ 3], 0.0f);
+        OCIO_CHECK_EQUAL(outImg[ 0], 0.0f);
+        OCIO_CHECK_EQUAL(outImg[ 1], 0.0f);
+        OCIO_CHECK_EQUAL(outImg[ 2], 0.0f);
+        OCIO_CHECK_EQUAL(outImg[ 3], 0.0f);
 
-        OIIO_CHECK_CLOSE(outImg[ 4], 0.066650390625f, 1e-6f);
-        OIIO_CHECK_CLOSE(outImg[ 5], 0.070617675781f, 1e-6f);
-        OIIO_CHECK_CLOSE(outImg[ 6], 0.070617675781f, 1e-6f);
-        OIIO_CHECK_EQUAL(outImg[ 7], 1.0f);
+        OCIO_CHECK_CLOSE(outImg[ 4], 0.066650390625f, 1e-6f);
+        OCIO_CHECK_CLOSE(outImg[ 5], 0.070617675781f, 1e-6f);
+        OCIO_CHECK_CLOSE(outImg[ 6], 0.070617675781f, 1e-6f);
+        OCIO_CHECK_EQUAL(outImg[ 7], 1.0f);
 
-        OIIO_CHECK_CLOSE(outImg[ 8], 0.7138671875f, 1e-6f);
-        OIIO_CHECK_CLOSE(outImg[ 9], 0.7255859375f, 1e-6f);
-        OIIO_CHECK_CLOSE(outImg[10], 0.7373046875f, 1e-6f);
-        OIIO_CHECK_EQUAL(outImg[11], 0.0f);
+        OCIO_CHECK_CLOSE(outImg[ 8], 0.7138671875f, 1e-6f);
+        OCIO_CHECK_CLOSE(outImg[ 9], 0.7255859375f, 1e-6f);
+        OCIO_CHECK_CLOSE(outImg[10], 0.7373046875f, 1e-6f);
+        OCIO_CHECK_EQUAL(outImg[11], 0.0f);
 
-        OIIO_CHECK_EQUAL(outImg[12], 1.0f);
-        OIIO_CHECK_EQUAL(outImg[13], 1.0f);
-        OIIO_CHECK_EQUAL(outImg[14], 1.0f);
-        OIIO_CHECK_EQUAL(outImg[15], 1.0f);
+        OCIO_CHECK_EQUAL(outImg[12], 1.0f);
+        OCIO_CHECK_EQUAL(outImg[13], 1.0f);
+        OCIO_CHECK_EQUAL(outImg[14], 1.0f);
+        OCIO_CHECK_EQUAL(outImg[15], 1.0f);
     }
 
     // Processing from UINT8 to F32.
@@ -2425,37 +2409,37 @@ OIIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
 
         OCIO::ConstLut1DOpDataRcPtr constLut = lutDataCloned;
 
-        OCIO::OpCPURcPtr cpuOp
+        OCIO::ConstOpCPURcPtr cpuOp
             = OCIO::GetLut1DRenderer(constLut, OCIO::BIT_DEPTH_UINT8, OCIO::BIT_DEPTH_F32);
 
         const bool isLookup
-            = OCIO::DynamicPtrCast<OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
-                                                           OCIO::BIT_DEPTH_F32>>(cpuOp)->isLookup();
-        OIIO_CHECK_ASSERT(isLookup);
+            = OCIO::DynamicPtrCast<const OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_UINT8, 
+                                                                 OCIO::BIT_DEPTH_F32>>(cpuOp)->isLookup();
+        OCIO_CHECK_ASSERT(isLookup);
 
         std::vector<float> outImg(NB_PIXELS * 4, 0);
 
-        OIIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
+        OCIO_CHECK_NO_THROW( cpuOp->apply(&uint8_inImg[0], &outImg[0], NB_PIXELS) );
 
-        OIIO_CHECK_EQUAL(outImg[ 0], 0.0f);
-        OIIO_CHECK_EQUAL(outImg[ 1], 0.0f);
-        OIIO_CHECK_EQUAL(outImg[ 2], 0.0f);
-        OIIO_CHECK_EQUAL(outImg[ 3], 0.0f);
+        OCIO_CHECK_EQUAL(outImg[ 0], 0.0f);
+        OCIO_CHECK_EQUAL(outImg[ 1], 0.0f);
+        OCIO_CHECK_EQUAL(outImg[ 2], 0.0f);
+        OCIO_CHECK_EQUAL(outImg[ 3], 0.0f);
 
-        OIIO_CHECK_CLOSE(outImg[ 4], 0.06666666666666667f, 1e-6f);
-        OIIO_CHECK_CLOSE(outImg[ 5], 0.07058823529411765f, 1e-6f);
-        OIIO_CHECK_CLOSE(outImg[ 6], 0.07058823529411765f, 1e-6f);
-        OIIO_CHECK_EQUAL(outImg[ 7], 1.0f);
+        OCIO_CHECK_CLOSE(outImg[ 4], 0.06666666666666667f, 1e-6f);
+        OCIO_CHECK_CLOSE(outImg[ 5], 0.07058823529411765f, 1e-6f);
+        OCIO_CHECK_CLOSE(outImg[ 6], 0.07058823529411765f, 1e-6f);
+        OCIO_CHECK_EQUAL(outImg[ 7], 1.0f);
 
-        OIIO_CHECK_CLOSE(outImg[ 8], 0.7137254901960784f, 1e-6f);
-        OIIO_CHECK_CLOSE(outImg[ 9], 0.7254901960784313f, 1e-6f);
-        OIIO_CHECK_CLOSE(outImg[10], 0.7372549019607844f, 1e-6f);
-        OIIO_CHECK_EQUAL(outImg[11], 0.0f);
+        OCIO_CHECK_CLOSE(outImg[ 8], 0.7137254901960784f, 1e-6f);
+        OCIO_CHECK_CLOSE(outImg[ 9], 0.7254901960784313f, 1e-6f);
+        OCIO_CHECK_CLOSE(outImg[10], 0.7372549019607844f, 1e-6f);
+        OCIO_CHECK_EQUAL(outImg[11], 0.0f);
 
-        OIIO_CHECK_EQUAL(outImg[12], 1.0f);
-        OIIO_CHECK_EQUAL(outImg[13], 1.0f);
-        OIIO_CHECK_EQUAL(outImg[14], 1.0f);
-        OIIO_CHECK_EQUAL(outImg[15], 1.0f);
+        OCIO_CHECK_EQUAL(outImg[12], 1.0f);
+        OCIO_CHECK_EQUAL(outImg[13], 1.0f);
+        OCIO_CHECK_EQUAL(outImg[14], 1.0f);
+        OCIO_CHECK_EQUAL(outImg[15], 1.0f);
     }
 
     // Use scaled previous input values so previous output values could be 
@@ -2475,37 +2459,37 @@ OIIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
 
         OCIO::ConstLut1DOpDataRcPtr constLut = lutDataCloned;
 
-        OCIO::OpCPURcPtr cpuOp
+        OCIO::ConstOpCPURcPtr cpuOp
             = OCIO::GetLut1DRenderer(constLut, OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_UINT8);
 
         const bool isLookup
-            = OCIO::DynamicPtrCast<OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_F32, 
-                                                           OCIO::BIT_DEPTH_UINT8>>(cpuOp)->isLookup();
-        OIIO_CHECK_ASSERT(!isLookup);
+            = OCIO::DynamicPtrCast<const OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_F32, 
+                                                                 OCIO::BIT_DEPTH_UINT8>>(cpuOp)->isLookup();
+        OCIO_CHECK_ASSERT(!isLookup);
 
         std::vector<uint8_t> outImg(NB_PIXELS * 4, 0);
 
-        OIIO_CHECK_NO_THROW( cpuOp->apply(&float_inImg[0], &outImg[0], NB_PIXELS) );
+        OCIO_CHECK_NO_THROW( cpuOp->apply(&float_inImg[0], &outImg[0], NB_PIXELS) );
 
-        OIIO_CHECK_EQUAL(outImg[ 0],   0);
-        OIIO_CHECK_EQUAL(outImg[ 1],   0);
-        OIIO_CHECK_EQUAL(outImg[ 2],   0);
-        OIIO_CHECK_EQUAL(outImg[ 3],   0);
+        OCIO_CHECK_EQUAL(outImg[ 0],   0);
+        OCIO_CHECK_EQUAL(outImg[ 1],   0);
+        OCIO_CHECK_EQUAL(outImg[ 2],   0);
+        OCIO_CHECK_EQUAL(outImg[ 3],   0);
 
-        OIIO_CHECK_EQUAL(outImg[ 4],  17);
-        OIIO_CHECK_EQUAL(outImg[ 5],  18);
-        OIIO_CHECK_EQUAL(outImg[ 6],  18);
-        OIIO_CHECK_EQUAL(outImg[ 7], 255);
+        OCIO_CHECK_EQUAL(outImg[ 4],  17);
+        OCIO_CHECK_EQUAL(outImg[ 5],  18);
+        OCIO_CHECK_EQUAL(outImg[ 6],  18);
+        OCIO_CHECK_EQUAL(outImg[ 7], 255);
 
-        OIIO_CHECK_EQUAL(outImg[ 8], 182);
-        OIIO_CHECK_EQUAL(outImg[ 9], 185);
-        OIIO_CHECK_EQUAL(outImg[10], 188);
-        OIIO_CHECK_EQUAL(outImg[11],   0);
+        OCIO_CHECK_EQUAL(outImg[ 8], 182);
+        OCIO_CHECK_EQUAL(outImg[ 9], 185);
+        OCIO_CHECK_EQUAL(outImg[10], 188);
+        OCIO_CHECK_EQUAL(outImg[11],   0);
 
-        OIIO_CHECK_EQUAL(outImg[12], 255);
-        OIIO_CHECK_EQUAL(outImg[13], 255);
-        OIIO_CHECK_EQUAL(outImg[14], 255);
-        OIIO_CHECK_EQUAL(outImg[15], 255);
+        OCIO_CHECK_EQUAL(outImg[12], 255);
+        OCIO_CHECK_EQUAL(outImg[13], 255);
+        OCIO_CHECK_EQUAL(outImg[14], 255);
+        OCIO_CHECK_EQUAL(outImg[15], 255);
     }
 
     // LUT will not be a lookup table.
@@ -2516,37 +2500,37 @@ OIIO_ADD_TEST(Lut1DRenderer, bit_depth_support)
 
         OCIO::ConstLut1DOpDataRcPtr constLut = lutDataCloned;
 
-        OCIO::OpCPURcPtr cpuOp
+        OCIO::ConstOpCPURcPtr cpuOp
             = OCIO::GetLut1DRenderer(constLut, OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_UINT16);
 
         const bool isLookup
-            = OCIO::DynamicPtrCast<OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_F32, 
-                                                           OCIO::BIT_DEPTH_UINT16>>(cpuOp)->isLookup();
-        OIIO_CHECK_ASSERT(!isLookup);
+            = OCIO::DynamicPtrCast<const OCIO::BaseLut1DRenderer<OCIO::BIT_DEPTH_F32, 
+                                                                 OCIO::BIT_DEPTH_UINT16>>(cpuOp)->isLookup();
+        OCIO_CHECK_ASSERT(!isLookup);
 
         std::vector<uint16_t> outImg(NB_PIXELS * 4, 0);
 
-        OIIO_CHECK_NO_THROW( cpuOp->apply(&float_inImg[0], &outImg[0], NB_PIXELS) );
+        OCIO_CHECK_NO_THROW( cpuOp->apply(&float_inImg[0], &outImg[0], NB_PIXELS) );
 
-        OIIO_CHECK_EQUAL(outImg[ 0], uint16_outImg[ 0]);
-        OIIO_CHECK_EQUAL(outImg[ 1], uint16_outImg[ 1]);
-        OIIO_CHECK_EQUAL(outImg[ 2], uint16_outImg[ 2]);
-        OIIO_CHECK_EQUAL(outImg[ 3], uint16_outImg[ 3]);
+        OCIO_CHECK_EQUAL(outImg[ 0], uint16_outImg[ 0]);
+        OCIO_CHECK_EQUAL(outImg[ 1], uint16_outImg[ 1]);
+        OCIO_CHECK_EQUAL(outImg[ 2], uint16_outImg[ 2]);
+        OCIO_CHECK_EQUAL(outImg[ 3], uint16_outImg[ 3]);
 
-        OIIO_CHECK_EQUAL(outImg[ 4], uint16_outImg[ 4]);
-        OIIO_CHECK_EQUAL(outImg[ 5], uint16_outImg[ 5]);
-        OIIO_CHECK_EQUAL(outImg[ 6], uint16_outImg[ 6]);
-        OIIO_CHECK_EQUAL(outImg[ 7], uint16_outImg[ 7]);
+        OCIO_CHECK_EQUAL(outImg[ 4], uint16_outImg[ 4]);
+        OCIO_CHECK_EQUAL(outImg[ 5], uint16_outImg[ 5]);
+        OCIO_CHECK_EQUAL(outImg[ 6], uint16_outImg[ 6]);
+        OCIO_CHECK_EQUAL(outImg[ 7], uint16_outImg[ 7]);
 
-        OIIO_CHECK_EQUAL(outImg[ 8], uint16_outImg[ 8]);
-        OIIO_CHECK_EQUAL(outImg[ 9], uint16_outImg[ 9]);
-        OIIO_CHECK_EQUAL(outImg[10], uint16_outImg[10]);
-        OIIO_CHECK_EQUAL(outImg[11], uint16_outImg[11]);
+        OCIO_CHECK_EQUAL(outImg[ 8], uint16_outImg[ 8]);
+        OCIO_CHECK_EQUAL(outImg[ 9], uint16_outImg[ 9]);
+        OCIO_CHECK_EQUAL(outImg[10], uint16_outImg[10]);
+        OCIO_CHECK_EQUAL(outImg[11], uint16_outImg[11]);
 
-        OIIO_CHECK_EQUAL(outImg[12], uint16_outImg[12]);
-        OIIO_CHECK_EQUAL(outImg[13], uint16_outImg[13]);
-        OIIO_CHECK_EQUAL(outImg[14], uint16_outImg[14]);
-        OIIO_CHECK_EQUAL(outImg[15], uint16_outImg[15]);
+        OCIO_CHECK_EQUAL(outImg[12], uint16_outImg[12]);
+        OCIO_CHECK_EQUAL(outImg[13], uint16_outImg[13]);
+        OCIO_CHECK_EQUAL(outImg[14], uint16_outImg[14]);
+        OCIO_CHECK_EQUAL(outImg[15], uint16_outImg[15]);
     }
 }
 

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenColorIO Project.
+
 import unittest, os, sys
 
 build_location = sys.argv[1]
@@ -48,7 +51,6 @@ def suite():
     suite.addTest(ContextTest("test_interface"))
     suite.addTest(LookTest("test_interface"))
     suite.addTest(ColorSpaceTest("test_interface"))
-    suite.addTest(TransformsTest("test_interface"))
     suite.addTest(CDLTransformTest("test_interface"))
     suite.addTest(CDLTransformTest("test_equality"))
     suite.addTest(CDLTransformTest("test_validation"))

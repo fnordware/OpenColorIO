@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenColorIO Project.
+
 set(SOURCES
 	Baker.cpp
 	BitDepthUtils.cpp
@@ -8,6 +11,7 @@ set(SOURCES
 	Context.cpp
 	CPUProcessor.cpp
 	Display.cpp
+	DynamicProperty.cpp
 	Exception.cpp
 	fileformats/cdl/CDLParser.cpp
 	fileformats/cdl/CDLReaderHelper.cpp
@@ -33,8 +37,11 @@ set(SOURCES
 	fileformats/FileFormatSpiMtx.cpp
 	fileformats/FileFormatTruelight.cpp
 	fileformats/FileFormatVF.cpp
+	fileformats/FormatMetadata.cpp
 	fileformats/xmlutils/XMLReaderHelper.cpp
 	fileformats/xmlutils/XMLReaderUtils.cpp
+	fileformats/xmlutils/XMLWriterUtils.cpp
+	GPUProcessor.cpp
 	GpuShader.cpp
 	GpuShaderDesc.cpp
 	GpuShaderUtils.cpp
@@ -54,9 +61,13 @@ set(SOURCES
 	ops/CDL/CDLOpData.cpp
 	ops/CDL/CDLOps.cpp
 	ops/Exponent/ExponentOps.cpp
-	ops/FixedFunction/FixedFunctionOpGPU.cpp
+	ops/exposurecontrast/ExposureContrastOpCPU.cpp
+	ops/exposurecontrast/ExposureContrastOpData.cpp
+	ops/exposurecontrast/ExposureContrastOpGPU.cpp
+	ops/exposurecontrast/ExposureContrastOps.cpp
 	ops/FixedFunction/FixedFunctionOpCPU.cpp
 	ops/FixedFunction/FixedFunctionOpData.cpp
+	ops/FixedFunction/FixedFunctionOpGPU.cpp
 	ops/FixedFunction/FixedFunctionOps.cpp
 	ops/Gamma/GammaOpCPU.cpp
 	ops/Gamma/GammaOpData.cpp
@@ -79,14 +90,12 @@ set(SOURCES
 	ops/Matrix/MatrixOpCPU.cpp
 	ops/Matrix/MatrixOpData.cpp
 	ops/Matrix/MatrixOps.cpp
-	ops/Metadata.cpp
 	ops/NoOp/NoOps.cpp
 	ops/Range/RangeOpCPU.cpp
 	ops/Range/RangeOpData.cpp
 	ops/Range/RangeOpGPU.cpp
 	ops/Range/RangeOps.cpp
 	ops/reference/ReferenceOpData.cpp
-	ops/Truelight/TruelightOp.cpp
 	OpTools.cpp
 	ParseUtils.cpp
 	PathUtils.cpp
@@ -100,17 +109,17 @@ set(SOURCES
 	transforms/DisplayTransform.cpp
 	transforms/ExponentTransform.cpp
 	transforms/ExponentWithLinearTransform.cpp
+	transforms/ExposureContrastTransform.cpp
 	transforms/FileTransform.cpp
 	transforms/FixedFunctionTransform.cpp
 	transforms/GroupTransform.cpp
 	transforms/LogAffineTransform.cpp
 	transforms/LogTransform.cpp
 	transforms/LookTransform.cpp
+	transforms/LUT1DTransform.cpp
+	transforms/LUT3DTransform.cpp
 	transforms/MatrixTransform.cpp
 	transforms/RangeTransform.cpp
-	transforms/TruelightTransform.cpp
-	UnitTest.cpp
-	UnitTestUtils.cpp
 )
 
 if(WIN32 AND BUILD_SHARED_LIBS)
@@ -135,12 +144,13 @@ target_link_libraries(OpenColorIO
 	PUBLIC 
 		public_api
 	PRIVATE
-		yamlcpp
-		pystring
-		sampleicc
-		libexpat
-		ilmbase
+		yamlcpp::yamlcpp
+		pystring::pystring
+		sampleicc::sampleicc
+		expat::expat
+		ilmbase::ilmbase
 )
+
 if(NOT BUILD_SHARED_LIBS)
 	target_compile_definitions(OpenColorIO
 		PRIVATE
@@ -152,6 +162,12 @@ else()
 		PRIVATE
 			OpenColorIO_EXPORTS
 	)
+endif()
+
+if(BUILD_SHARED_LIBS OR (OCIO_BUILD_PYTHON AND UNIX))
+	# The Python bindings is a 'module' which is a dynamic library on Linux 
+	# (i.e. '-fPIC' needed), but a static library on Windows.
+
 	# If supported for the target machine, emit position-independent code 
 	# suitable for dynamic linking.
 	set_property(TARGET OpenColorIO PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -164,17 +180,23 @@ if(OCIO_USE_SSE)
 	)
 endif()
 
+if(MSVC AND BUILD_TYPE_DEBUG AND BUILD_SHARED_LIBS)
+    set_target_properties(OpenColorIO PROPERTIES
+        PDB_NAME ${PROJECT_NAME}_${LIBNAME_SUFFIX}
+    )
+endif()
+
 if(WIN32)
     # A windows application linking to eXpat static libraries must
     # have the global macro XML_STATIC defined
-    target_compile_definitions(OpenColorIO
+    target_compile_definitions(OpenColorIO 
         PRIVATE
             XML_STATIC
     )
 
     if(BUILD_SHARED_LIBS)
 
-        # Impose a versioned name on Windows to avoid binary name clashes 
+        # Impose a versioned name on Windows to avoid binary name clashes
         # between different versions of the same library.
 
         # Note: Do not append the PATCH to allow Apps to use the
@@ -188,12 +210,17 @@ if(WIN32)
     endif()
 endif()
 
-set_target_properties(OpenColorIO PROPERTIES 
+set_target_properties(OpenColorIO PROPERTIES
 	COMPILE_FLAGS "${PLATFORM_COMPILE_FLAGS}")
 
 set_target_properties(OpenColorIO PROPERTIES
     VERSION ${OpenColorIO_VERSION}
     SOVERSION ${SOVERSION})
+
+if(MSVC AND BUILD_SHARED_LIBS)
+	# Install the pdb file if any.
+	install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION bin OPTIONAL)
+endif()
 
 install(TARGETS OpenColorIO
 	LIBRARY DESTINATION lib

@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <sstream>
 
@@ -74,33 +49,61 @@ std::string GetParametersString(const GammaOpData::Params & params)
     return oss.str();
 }
 
+static constexpr const char * GAMMA_STYLE_BASIC_FWD    = "basicFwd";
+static constexpr const char * GAMMA_STYLE_BASIC_REV    = "basicRev";
+static constexpr const char * GAMMA_STYLE_MONCURVE_FWD = "moncurveFwd";
+static constexpr const char * GAMMA_STYLE_MONCURVE_REV = "moncurveRev";
+
 }; // anon
 
+GammaOpData::Style GammaOpData::ConvertStringToStyle(const char * str)
+{
+    if (str && *str)
+    {
+        if (0 == Platform::Strcasecmp(str, GAMMA_STYLE_BASIC_FWD))
+        {
+            return BASIC_FWD;
+        }
+        else if (0 == Platform::Strcasecmp(str, GAMMA_STYLE_BASIC_REV))
+        {
+            return BASIC_REV;
+        }
+        else if (0 == Platform::Strcasecmp(str, GAMMA_STYLE_MONCURVE_FWD))
+        {
+            return MONCURVE_FWD;
+        }
+        else if (0 == Platform::Strcasecmp(str, GAMMA_STYLE_MONCURVE_REV))
+        {
+            return MONCURVE_REV;
+        }
 
-const char * GammaOpData::convertStyleToString(Style style)
+        std::ostringstream os;
+        os << "Unknown gamma style: '" << str << "'.";
+
+        throw Exception(os.str().c_str());
+    }
+
+    throw Exception("Missing gamma style.");
+}
+
+const char * GammaOpData::ConvertStyleToString(Style style)
 {
     switch(style)
     {
         case BASIC_FWD:
-            return "basicFwd";
-            break;
+            return GAMMA_STYLE_BASIC_FWD;
         case BASIC_REV:
-            return "basicRev";
-            break;
+            return GAMMA_STYLE_BASIC_REV;
         case MONCURVE_FWD:
-            return "moncurveFwd";
-            break;
+            return GAMMA_STYLE_MONCURVE_FWD;
         case MONCURVE_REV:
-            return "moncurveRev";
-            break;
+            return GAMMA_STYLE_MONCURVE_REV;
     }
 
     std::stringstream ss("Unknown Gamma style: ");
     ss << style;
 
     throw Exception(ss.str().c_str());
-
-    return "basicFwd";
 }
 
 GammaOpData::GammaOpData()
@@ -115,14 +118,13 @@ GammaOpData::GammaOpData()
 
 GammaOpData::GammaOpData(BitDepth inBitDepth,
                          BitDepth outBitDepth,
-                         const std::string & id,
-                         const OpData::Descriptions & desc,
+                         const FormatMetadataImpl & info,
                          const Style & style,
                          const Params & redParams,
                          const Params & greenParams,
                          const Params & blueParams,
                          const Params & alphaParams)
-    :   OpData(inBitDepth, outBitDepth, id, desc)
+    :   OpData(inBitDepth, outBitDepth, info)
     ,   m_style(style)
     ,   m_redParams(redParams)
     ,   m_greenParams(greenParams)
@@ -142,6 +144,10 @@ GammaOpDataRcPtr GammaOpData::clone() const
 
 GammaOpDataRcPtr GammaOpData::inverse() const
 {
+    GammaOpDataRcPtr gamma = clone();
+    gamma->setInputBitDepth(getOutputBitDepth());
+    gamma->setOutputBitDepth(getInputBitDepth());
+
     Style invStyle = BASIC_FWD;
     switch(getStyle())
     {
@@ -150,11 +156,12 @@ GammaOpDataRcPtr GammaOpData::inverse() const
       case MONCURVE_FWD:  invStyle = MONCURVE_REV;  break;
       case MONCURVE_REV:  invStyle = MONCURVE_FWD;  break;
     }
+    gamma->setStyle(invStyle);
 
-    return std::make_shared<GammaOpData>(getOutputBitDepth(), getInputBitDepth(),
-                                         "", Descriptions(), invStyle,
-                                         getRedParams(), getGreenParams(),
-                                         getBlueParams(), getAlphaParams() );
+    // Note that any existing metadata could become stale at this point but
+    // trying to update it is also challenging since inverse() is sometimes
+    // called even during the creation of new ops.
+    return gamma;
 }
 
 bool GammaOpData::isInverse(const GammaOpData & B) const
@@ -431,6 +438,7 @@ OpDataRcPtr GammaOpData::getIdentityReplacement() const
         {
             op = std::make_shared<RangeOpData>(getInputBitDepth(),
                                                getOutputBitDepth(),
+                                               getFormatMetadata(),
                                                0.,
                                                RangeOpData::EmptyValue(), // Don't clamp high end.
                                                0.,
@@ -443,7 +451,8 @@ OpDataRcPtr GammaOpData::getIdentityReplacement() const
         case MONCURVE_FWD:
         case MONCURVE_REV:
         {
-            op = std::make_shared<MatrixOpData>(getInputBitDepth(), getOutputBitDepth());
+            op = std::make_shared<MatrixOpData>(getInputBitDepth(), getOutputBitDepth(),
+                                                getFormatMetadata());
             break;
         }
     }
@@ -494,47 +503,48 @@ GammaOpDataRcPtr GammaOpData::compose(const GammaOpData & B) const
     GammaOpData::Params paramsA;
     paramsA.push_back(1.);
 
-    Descriptions newDesc = getDescriptions();
-    newDesc += B.getDescriptions();
-
-    std::string id(getID());
-    id += B.getID();
-
-    GammaOpDataRcPtr outOp 
-    = std::make_shared<GammaOpData>(getInputBitDepth(),
-                                    B.getOutputBitDepth(),
-                                    id.c_str(), newDesc,
-                                    style,
-                                    params,
-                                    params,
-                                    params,
-                                    paramsA);
-
     // TODO: May want to revisit how the metadata is set.
+    FormatMetadataImpl newDesc = getFormatMetadata();
+    newDesc.combine(B.getFormatMetadata());
+
+    GammaOpDataRcPtr outOp = 
+        std::make_shared<GammaOpData>(getInputBitDepth(),
+                                      B.getOutputBitDepth(),
+                                      newDesc,
+                                      style,
+                                      params,
+                                      params,
+                                      params,
+                                      paramsA);
 
     return outOp;
 }
 
-bool GammaOpData::operator==(const GammaOpData & other) const
+bool GammaOpData::operator==(const OpData & other) const
 {
     if(this==&other) return true;
 
-    return  OpData::operator==(other) &&
-            m_style == other.m_style &&
-            m_redParams == other.m_redParams &&
-            m_greenParams == other.m_greenParams &&
-            m_blueParams == other.m_blueParams &&
-            m_alphaParams == other.m_alphaParams;
+    if(!OpData::operator==(other)) return false;
+
+    const GammaOpData* gop = static_cast<const GammaOpData*>(&other);
+
+    return  m_style == gop->m_style &&
+            m_redParams == gop->m_redParams &&
+            m_greenParams == gop->m_greenParams &&
+            m_blueParams == gop->m_blueParams &&
+            m_alphaParams == gop->m_alphaParams;
 }
 
 void GammaOpData::finalize()
 {
     AutoMutex lock(m_mutex);
 
+    validate();
+
     std::ostringstream cacheIDStream;
     cacheIDStream << getID() << " ";
 
-    cacheIDStream << GammaOpData::convertStyleToString(getStyle()) << " ";
+    cacheIDStream << GammaOpData::ConvertStyleToString(getStyle()) << " ";
 
     cacheIDStream << "r:" << GetParametersString(getRedParams())   << " ";
     cacheIDStream << "g:" << GetParametersString(getGreenParams()) << " ";
@@ -555,80 +565,79 @@ OCIO_NAMESPACE_EXIT
 
 
 namespace OCIO = OCIO_NAMESPACE;
-#include "unittest.h"
+#include "UnitTest.h"
 
 
 namespace
 {
-    const OCIO::BitDepth inBitDepth  = OCIO::BIT_DEPTH_UINT8;
-    const OCIO::BitDepth outBitDepth = OCIO::BIT_DEPTH_F16;
+const OCIO::BitDepth inBitDepth  = OCIO::BIT_DEPTH_UINT8;
+const OCIO::BitDepth outBitDepth = OCIO::BIT_DEPTH_F16;
 
-    const std::string id;
-    const OCIO::OpData::Descriptions desc;
+const OCIO::FormatMetadataImpl desc(OCIO::METADATA_ROOT);
 }
 
 
-OIIO_ADD_TEST(GammaOpData, accessors)
+OCIO_ADD_TEST(GammaOpData, accessors)
 {
     const OCIO::GammaOpData::Params paramsR = { 2.4, 0.1 };
     const OCIO::GammaOpData::Params paramsG = { 2.2, 0.2 };
     const OCIO::GammaOpData::Params paramsB = { 2.0, 0.4 };
     const OCIO::GammaOpData::Params paramsA = { 1.8, 0.6 };
 
-    OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                          OCIO::GammaOpData::MONCURVE_FWD,
                          paramsR, paramsG, paramsB, paramsA);
 
-    OIIO_CHECK_EQUAL(g1.getType(), OCIO::OpData::GammaType);
-    OIIO_CHECK_EQUAL(g1.getInputBitDepth(), inBitDepth);
-    OIIO_CHECK_EQUAL(g1.getOutputBitDepth(), outBitDepth);
+    OCIO_CHECK_EQUAL(g1.getType(), OCIO::OpData::GammaType);
+    OCIO_CHECK_EQUAL(g1.getInputBitDepth(), inBitDepth);
+    OCIO_CHECK_EQUAL(g1.getOutputBitDepth(), outBitDepth);
 
-    OIIO_CHECK_ASSERT(g1.getRedParams()   == paramsR);
-    OIIO_CHECK_ASSERT(g1.getGreenParams() == paramsG);
-    OIIO_CHECK_ASSERT(g1.getBlueParams()  == paramsB);
-    OIIO_CHECK_ASSERT(g1.getAlphaParams() == paramsA);
+    OCIO_CHECK_ASSERT(g1.getRedParams()   == paramsR);
+    OCIO_CHECK_ASSERT(g1.getGreenParams() == paramsG);
+    OCIO_CHECK_ASSERT(g1.getBlueParams()  == paramsB);
+    OCIO_CHECK_ASSERT(g1.getAlphaParams() == paramsA);
 
-    OIIO_CHECK_EQUAL(g1.getStyle(), OCIO::GammaOpData::MONCURVE_FWD);
+    OCIO_CHECK_EQUAL(g1.getStyle(), OCIO::GammaOpData::MONCURVE_FWD);
 
-    OIIO_CHECK_ASSERT( ! g1.areAllComponentsEqual() );
-    OIIO_CHECK_ASSERT( ! g1.isNonChannelDependent() );
-    OIIO_CHECK_ASSERT( ! g1.isAlphaComponentIdentity() );
+    OCIO_CHECK_ASSERT( ! g1.areAllComponentsEqual() );
+    OCIO_CHECK_ASSERT( ! g1.isNonChannelDependent() );
+    OCIO_CHECK_ASSERT( ! g1.isAlphaComponentIdentity() );
 
 
     // Set R, G and B params to paramsR, A set to identity.
     g1.setParams(paramsR);
 
-    OIIO_CHECK_ASSERT(!g1.areAllComponentsEqual());
-    OIIO_CHECK_ASSERT(g1.isNonChannelDependent());
-    OIIO_CHECK_ASSERT(g1.isAlphaComponentIdentity());
+    OCIO_CHECK_ASSERT(!g1.areAllComponentsEqual());
+    OCIO_CHECK_ASSERT(g1.isNonChannelDependent());
+    OCIO_CHECK_ASSERT(g1.isAlphaComponentIdentity());
 
-    OIIO_CHECK_ASSERT(g1.getGreenParams() == paramsR);
-    OIIO_CHECK_ASSERT(
+    OCIO_CHECK_ASSERT(g1.getGreenParams() == paramsR);
+    OCIO_CHECK_ASSERT(
         OCIO::GammaOpData::isIdentityParameters(g1.getAlphaParams(), 
                                                 g1.getStyle()));
 
     g1.setAlphaParams(paramsR);
-    OIIO_CHECK_ASSERT(g1.areAllComponentsEqual());
+    OCIO_CHECK_ASSERT(g1.areAllComponentsEqual());
 
     g1.setBlueParams(paramsB);
-    OIIO_CHECK_ASSERT(g1.getBlueParams() == paramsB);
+    OCIO_CHECK_ASSERT(g1.getBlueParams() == paramsB);
 
-    OIIO_CHECK_ASSERT(!g1.areAllComponentsEqual());
+    OCIO_CHECK_ASSERT(!g1.areAllComponentsEqual());
 
     g1.setRedParams(paramsB);
-    OIIO_CHECK_ASSERT(g1.getRedParams() == paramsB);
+    OCIO_CHECK_ASSERT(g1.getRedParams() == paramsB);
 
     g1.setGreenParams(paramsB);
-    OIIO_CHECK_ASSERT(g1.getGreenParams() == paramsB);
+    OCIO_CHECK_ASSERT(g1.getGreenParams() == paramsB);
 
     g1.setAlphaParams(paramsA);
-    OIIO_CHECK_ASSERT(g1.getAlphaParams() == paramsA);
+    OCIO_CHECK_ASSERT(g1.getAlphaParams() == paramsA);
 
     g1.setStyle(OCIO::GammaOpData::MONCURVE_REV);
-    OIIO_CHECK_EQUAL(g1.getStyle(), OCIO::GammaOpData::MONCURVE_REV);
+    OCIO_CHECK_EQUAL(g1.getStyle(), OCIO::GammaOpData::MONCURVE_REV);
 }
 
-OIIO_ADD_TEST(GammaOpData, identity_style_basic)
+OCIO_ADD_TEST(GammaOpData, identity_style_basic)
 {
     const OCIO::GammaOpData::Params IdentityParams
         = OCIO::GammaOpData::getIdentityParameters(OCIO::GammaOpData::BASIC_FWD);
@@ -637,13 +646,13 @@ OIIO_ADD_TEST(GammaOpData, identity_style_basic)
         //
         // Basic identity gamma.
         //
-        OCIO::GammaOpData g(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g(inBitDepth, outBitDepth, desc,
                             OCIO::GammaOpData::BASIC_FWD,
                             IdentityParams, IdentityParams,
                             IdentityParams, IdentityParams);
-        OIIO_CHECK_ASSERT(g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp()); // inBitDepth != outBitDepth
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp()); // inBitDepth != outBitDepth
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
     {
@@ -656,10 +665,10 @@ OIIO_ADD_TEST(GammaOpData, identity_style_basic)
         g.setOutputBitDepth(outBitDepth);
         g.setParams(IdentityParams);
         g.validate();
-        OIIO_CHECK_EQUAL(g.getStyle(), OCIO::GammaOpData::BASIC_FWD);
-        OIIO_CHECK_ASSERT(g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp()); // inBitDepth != outBitDepth
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_EQUAL(g.getStyle(), OCIO::GammaOpData::BASIC_FWD);
+        OCIO_CHECK_ASSERT(g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp()); // inBitDepth != outBitDepth
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
     const OCIO::GammaOpData::Params paramsR = { 1.2 };
@@ -671,12 +680,12 @@ OIIO_ADD_TEST(GammaOpData, identity_style_basic)
         //
         // Non-identity check for basic style.
         //
-        OCIO::GammaOpData g(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g(inBitDepth, outBitDepth, desc,
                             OCIO::GammaOpData::BASIC_FWD,
                             paramsR, paramsG, paramsB, paramsA);
-        OIIO_CHECK_ASSERT(!g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp());
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(!g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp());
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
     {
@@ -685,21 +694,21 @@ OIIO_ADD_TEST(GammaOpData, identity_style_basic)
         // Default gamma op is BASIC_FWD, in/out bitDepth 32f.
         //
         OCIO::GammaOpData g;
-        OIIO_CHECK_ASSERT(g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp()); // basic style clamps, so it isn't a no-op
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp()); // basic style clamps, so it isn't a no-op
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
 
         g.setParams(paramsR);
         g.validate();
 
-        OIIO_CHECK_EQUAL(g.getStyle(), OCIO::GammaOpData::BASIC_FWD);
-        OIIO_CHECK_ASSERT(!g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp());
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_EQUAL(g.getStyle(), OCIO::GammaOpData::BASIC_FWD);
+        OCIO_CHECK_ASSERT(!g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp());
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 }
 
-OIIO_ADD_TEST(GammaOpData, identity_style_moncurve)
+OCIO_ADD_TEST(GammaOpData, identity_style_moncurve)
 {
     const OCIO::GammaOpData::Params IdentityParams
       = OCIO::GammaOpData::getIdentityParameters(OCIO::GammaOpData::MONCURVE_FWD);
@@ -708,13 +717,13 @@ OIIO_ADD_TEST(GammaOpData, identity_style_moncurve)
         //
         // Identity test for moncurve.
         //
-        OCIO::GammaOpData g(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g(inBitDepth, outBitDepth, desc,
                             OCIO::GammaOpData::MONCURVE_FWD,
                             IdentityParams, IdentityParams,
                             IdentityParams, IdentityParams);
-        OIIO_CHECK_ASSERT(g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp()); // inBitDepth != outBitDepth
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp()); // inBitDepth != outBitDepth
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
     {
@@ -726,9 +735,9 @@ OIIO_ADD_TEST(GammaOpData, identity_style_moncurve)
         g.setStyle(OCIO::GammaOpData::MONCURVE_FWD);
         g.setParams(IdentityParams);
         g.validate();
-        OIIO_CHECK_ASSERT(g.isIdentity());
-        OIIO_CHECK_ASSERT(g.isNoOp());
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(g.isIdentity());
+        OCIO_CHECK_ASSERT(g.isNoOp());
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
     const OCIO::GammaOpData::Params paramsR = { 1.2, 0.2 };
@@ -740,12 +749,12 @@ OIIO_ADD_TEST(GammaOpData, identity_style_moncurve)
         //
         // Non-identity test for moncurve.
         //
-        OCIO::GammaOpData g(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g(inBitDepth, outBitDepth, desc,
                             OCIO::GammaOpData::MONCURVE_FWD,
                             paramsR, paramsG, paramsB, paramsA);
-        OIIO_CHECK_ASSERT(!g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp());
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(!g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp());
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
     {
@@ -758,13 +767,13 @@ OIIO_ADD_TEST(GammaOpData, identity_style_moncurve)
         g.setParams(paramsR);
         g.validate();
 
-        OIIO_CHECK_ASSERT(!g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp());
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(!g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp());
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 }
 
-OIIO_ADD_TEST(GammaOpData, noop_style_basic)
+OCIO_ADD_TEST(GammaOpData, noop_style_basic)
 {
     // Test basic gamma
     const OCIO::GammaOpData::Params IdentityParams
@@ -774,13 +783,13 @@ OIIO_ADD_TEST(GammaOpData, noop_style_basic)
         //
         // NoOp test, basic style.
         //
-        OCIO::GammaOpData g(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, id, desc,
+        OCIO::GammaOpData g(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, desc,
                             OCIO::GammaOpData::BASIC_FWD,
                             IdentityParams, IdentityParams,
                             IdentityParams, IdentityParams);
-        OIIO_CHECK_ASSERT(g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp()); // basic style clamps, so it isn't a no-op
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp()); // basic style clamps, so it isn't a no-op
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
     const OCIO::GammaOpData::Params paramsR = { 1.2 };
@@ -792,17 +801,17 @@ OIIO_ADD_TEST(GammaOpData, noop_style_basic)
         //
         // Non-NoOp test, basic style.
         //
-        OCIO::GammaOpData g(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g(inBitDepth, outBitDepth, desc,
                             OCIO::GammaOpData::BASIC_FWD,
                             paramsR, paramsG, paramsB, paramsA);
-        OIIO_CHECK_ASSERT(!g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp());
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(!g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp());
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
 }
 
-OIIO_ADD_TEST(GammaOpData, noop_style_moncurve)
+OCIO_ADD_TEST(GammaOpData, noop_style_moncurve)
 {
     // Test monCurve gamma
     const OCIO::GammaOpData::Params IdentityParams
@@ -812,13 +821,13 @@ OIIO_ADD_TEST(GammaOpData, noop_style_moncurve)
         //
         // NoOp test, moncurve style.
         //
-        OCIO::GammaOpData g(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, id, desc,
+        OCIO::GammaOpData g(OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32, desc,
                             OCIO::GammaOpData::MONCURVE_FWD,
                             IdentityParams, IdentityParams,
                             IdentityParams, IdentityParams);
-        OIIO_CHECK_ASSERT(g.isIdentity());
-        OIIO_CHECK_ASSERT(g.isNoOp());
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(g.isIdentity());
+        OCIO_CHECK_ASSERT(g.isNoOp());
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
     const OCIO::GammaOpData::Params paramsR = { 1.2, 0.2 };
@@ -830,17 +839,17 @@ OIIO_ADD_TEST(GammaOpData, noop_style_moncurve)
         //
         // Non-NoOp test, moncurve style.
         //
-        OCIO::GammaOpData g(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g(inBitDepth, outBitDepth, desc,
                             OCIO::GammaOpData::MONCURVE_FWD,
                             paramsR, paramsG, paramsB, paramsA);
-        OIIO_CHECK_ASSERT(!g.isIdentity());
-        OIIO_CHECK_ASSERT(!g.isNoOp());
-        OIIO_CHECK_ASSERT(g.isChannelIndependent());
+        OCIO_CHECK_ASSERT(!g.isIdentity());
+        OCIO_CHECK_ASSERT(!g.isNoOp());
+        OCIO_CHECK_ASSERT(g.isChannelIndependent());
     }
 
 }
 
-OIIO_ADD_TEST(GammaOpData, validate)
+OCIO_ADD_TEST(GammaOpData, validate)
 {
     const OCIO::GammaOpData::Params params = { 2.6 };
 
@@ -850,19 +859,19 @@ OIIO_ADD_TEST(GammaOpData, validate)
     const OCIO::GammaOpData::Params paramsA = { 1.8, 0.6 };
 
     {
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::MONCURVE_FWD,
                              paramsR, paramsG, params, paramsA);
-        OIIO_CHECK_THROW_WHAT(g1.validate(),
+        OCIO_CHECK_THROW_WHAT(g1.validate(),
                               OCIO::Exception,
                               "GammaOp: Wrong number of parameters");
     }
 
     {
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              paramsB, paramsB, paramsB, paramsB);
-        OIIO_CHECK_THROW_WHAT(g1.validate(),
+        OCIO_CHECK_THROW_WHAT(g1.validate(),
                               OCIO::Exception,
                               "GammaOp: Wrong number of parameters");
     }
@@ -870,10 +879,10 @@ OIIO_ADD_TEST(GammaOpData, validate)
     {
         const OCIO::GammaOpData::Params params1 = { 0.006 }; // valid range is [0.01, 100]
 
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params1, params1, params1, params1);
-        OIIO_CHECK_THROW_WHAT(g1.validate(),
+        OCIO_CHECK_THROW_WHAT(g1.validate(),
                               OCIO::Exception,
                               "Parameter 0.006 is less than lower bound 0.01");
     }
@@ -881,10 +890,10 @@ OIIO_ADD_TEST(GammaOpData, validate)
     {
         const OCIO::GammaOpData::Params params1 = { 110. }; // valid range is [0.01, 100]
         
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params1, params1, params1, params1);
-        OIIO_CHECK_THROW_WHAT(g1.validate(),
+        OCIO_CHECK_THROW_WHAT(g1.validate(),
                               OCIO::Exception,
                               "Parameter 110 is greater than upper bound 100");
     }
@@ -894,10 +903,10 @@ OIIO_ADD_TEST(GammaOpData, validate)
         const OCIO::GammaOpData::Params params1 = { 1.,    // valid range is [1, 10]
                                                     11. }; // valid range is [0, 0.9]
 
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::MONCURVE_FWD,
                              params1, params1, params1, params1);
-        OIIO_CHECK_THROW_WHAT(g1.validate(),
+        OCIO_CHECK_THROW_WHAT(g1.validate(),
                               OCIO::Exception,
                               "Parameter 11 is greater than upper bound 0.9");
     }
@@ -906,34 +915,34 @@ OIIO_ADD_TEST(GammaOpData, validate)
         const OCIO::GammaOpData::Params params1 = { 1.,   // valid range is [1, 10]
                                                     0. }; // valid range is [0, 0.9]
 
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::MONCURVE_FWD,
                              params1, params1, params1, params1);
 
-        OIIO_CHECK_NO_THROW( g1.validate() );
+        OCIO_CHECK_NO_THROW( g1.validate() );
     }
 
     {
         const OCIO::GammaOpData::Params params1 = { 1.,     // valid range is [1, 10]
                                                    -1e-6 }; // valid range is [0, 0.9]
 
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::MONCURVE_FWD,
                              params1, params1, params1, params1);
-        OIIO_CHECK_THROW_WHAT(g1.validate(),
+        OCIO_CHECK_THROW_WHAT(g1.validate(),
                               OCIO::Exception,
                               "Parameter -1e-06 is less than lower bound 0");
     }
 }
 
-OIIO_ADD_TEST(GammaOpData, equality)
+OCIO_ADD_TEST(GammaOpData, equality)
 {
     const OCIO::GammaOpData::Params paramsR1 = { 2.4, 0.1 };
     const OCIO::GammaOpData::Params paramsG1 = { 2.2, 0.2 };
     const OCIO::GammaOpData::Params paramsB1 = { 2.0, 0.4 };
     const OCIO::GammaOpData::Params paramsA1 = { 1.8, 0.6 };
 
-    OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                          OCIO::GammaOpData::MONCURVE_FWD,
                          paramsR1, paramsG1, paramsB1, paramsA1);
 
@@ -942,28 +951,28 @@ OIIO_ADD_TEST(GammaOpData, equality)
     const OCIO::GammaOpData::Params paramsB2 = paramsB1;
     const OCIO::GammaOpData::Params paramsA2 = paramsA1;
 
-    OCIO::GammaOpData g2(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData g2(inBitDepth, outBitDepth, desc,
                          OCIO::GammaOpData::MONCURVE_FWD,
                          paramsR2, paramsG2, paramsB2, paramsA2);
 
-    OIIO_CHECK_ASSERT(!(g1 == g2));
+    OCIO_CHECK_ASSERT(!(g1 == g2));
 
-    OCIO::GammaOpData g3(inBitDepth, outBitDepth, id, desc, 
+    OCIO::GammaOpData g3(inBitDepth, outBitDepth, desc, 
                          OCIO::GammaOpData::MONCURVE_REV,
                          paramsR1, paramsG1, paramsB1, paramsA1);
 
-    OIIO_CHECK_ASSERT(!(g3 == g1));
+    OCIO_CHECK_ASSERT(!(g3 == g1));
 
     g3.setStyle(g1.getStyle());
     g3.validate();
 
-    OIIO_CHECK_ASSERT(g3 == g1);
+    OCIO_CHECK_ASSERT(g3 == g1);
 
-    OCIO::GammaOpData g4(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData g4(inBitDepth, outBitDepth, desc,
                          OCIO::GammaOpData::MONCURVE_FWD,
                          paramsR1, paramsG1, paramsB1, paramsA1);
 
-    OIIO_CHECK_ASSERT(g4 == g1);
+    OCIO_CHECK_ASSERT(g4 == g1);
 }
 
 namespace
@@ -982,7 +991,7 @@ void CheckGammaInverse(OCIO::BitDepth in,
                        const OCIO::GammaOpData::Params & invParamsB,
                        const OCIO::GammaOpData::Params & invParamsA )
 {
-    OCIO::GammaOpData refGammaOp(in, out, id, desc, 
+    OCIO::GammaOpData refGammaOp(in, out, desc, 
                                  refStyle,
                                  refParamsR,
                                  refParamsG,
@@ -992,25 +1001,25 @@ void CheckGammaInverse(OCIO::BitDepth in,
     OCIO::GammaOpDataRcPtr invOp = refGammaOp.inverse();
 
     // Inverse op should have its input/output bitdepth inverted ...
-    OIIO_CHECK_EQUAL(invOp->getInputBitDepth(), out);
-    OIIO_CHECK_EQUAL(invOp->getOutputBitDepth(), in);
+    OCIO_CHECK_EQUAL(invOp->getInputBitDepth(), out);
+    OCIO_CHECK_EQUAL(invOp->getOutputBitDepth(), in);
 
-    OIIO_CHECK_EQUAL(invOp->getStyle(), invStyle);
+    OCIO_CHECK_EQUAL(invOp->getStyle(), invStyle);
 
-    OIIO_CHECK_ASSERT(invOp->getRedParams()   == invParamsR);
-    OIIO_CHECK_ASSERT(invOp->getGreenParams() == invParamsG);
-    OIIO_CHECK_ASSERT(invOp->getBlueParams()  == invParamsB);
-    OIIO_CHECK_ASSERT(invOp->getAlphaParams() == invParamsA);
+    OCIO_CHECK_ASSERT(invOp->getRedParams()   == invParamsR);
+    OCIO_CHECK_ASSERT(invOp->getGreenParams() == invParamsG);
+    OCIO_CHECK_ASSERT(invOp->getBlueParams()  == invParamsB);
+    OCIO_CHECK_ASSERT(invOp->getAlphaParams() == invParamsA);
 
-    OIIO_CHECK_ASSERT(refGammaOp.isInverse(*invOp));
-    OIIO_CHECK_ASSERT(invOp->isInverse(refGammaOp));
-    OIIO_CHECK_ASSERT(!refGammaOp.isInverse(refGammaOp));
-    OIIO_CHECK_ASSERT(!invOp->isInverse(*invOp));
+    OCIO_CHECK_ASSERT(refGammaOp.isInverse(*invOp));
+    OCIO_CHECK_ASSERT(invOp->isInverse(refGammaOp));
+    OCIO_CHECK_ASSERT(!refGammaOp.isInverse(refGammaOp));
+    OCIO_CHECK_ASSERT(!invOp->isInverse(*invOp));
 }
 
 };
 
-OIIO_ADD_TEST(GammaOpData, basic_inverse)
+OCIO_ADD_TEST(GammaOpData, basic_inverse)
 {
     const OCIO::GammaOpData::Params paramsR = { 2.2 };
     const OCIO::GammaOpData::Params paramsG = { 2.4 };
@@ -1026,7 +1035,7 @@ OIIO_ADD_TEST(GammaOpData, basic_inverse)
                       OCIO::GammaOpData::BASIC_FWD, paramsR, paramsG, paramsB, paramsA);
 }
 
-OIIO_ADD_TEST(GammaOpData, moncurve_inverse)
+OCIO_ADD_TEST(GammaOpData, moncurve_inverse)
 {
     const OCIO::GammaOpData::Params paramsR = { 2.4, 0.1 };
     const OCIO::GammaOpData::Params paramsG = { 2.2, 0.2 };
@@ -1043,7 +1052,7 @@ OIIO_ADD_TEST(GammaOpData, moncurve_inverse)
                       OCIO::GammaOpData::MONCURVE_FWD, paramsR, paramsG, paramsB, paramsA);
 }
 
-OIIO_ADD_TEST(GammaOpData, is_inverse)
+OCIO_ADD_TEST(GammaOpData, is_inverse)
 {
     // NB: isInverse ignores bit-depth.
 
@@ -1052,103 +1061,103 @@ OIIO_ADD_TEST(GammaOpData, is_inverse)
     OCIO::GammaOpData::Params paramsR = { 2.4  };   // gamma
     OCIO::GammaOpData::Params paramsG = { 2.41 };   // gamma
 
-    OCIO::GammaOpData GammaOp1(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData GammaOp1(inBitDepth, outBitDepth, desc,
                                OCIO::GammaOpData::BASIC_FWD, 
                                paramsR, paramsG, paramsR, paramsR);
 
-    OCIO::GammaOpData GammaOp2(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData GammaOp2(inBitDepth, outBitDepth, desc,
                                OCIO::GammaOpData::BASIC_REV, 
                                paramsR, paramsG, paramsR, paramsR);
 
     // Set B param differently.
-    OCIO::GammaOpData GammaOp3(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData GammaOp3(inBitDepth, outBitDepth, desc,
                                OCIO::GammaOpData::BASIC_REV, 
                                paramsR, paramsG, paramsG, paramsR);
 
-    OIIO_CHECK_ASSERT(GammaOp1.isInverse(GammaOp2));
-    OIIO_CHECK_ASSERT(!GammaOp1.isInverse(GammaOp3));
+    OCIO_CHECK_ASSERT(GammaOp1.isInverse(GammaOp2));
+    OCIO_CHECK_ASSERT(!GammaOp1.isInverse(GammaOp3));
 
     paramsR.push_back(0.1);    // offset
     paramsG.push_back(0.1);    // offset
 
-    OCIO::GammaOpData GammaOp1m(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData GammaOp1m(inBitDepth, outBitDepth, desc,
                                 OCIO::GammaOpData::MONCURVE_FWD, 
                                 paramsR, paramsG, paramsR, paramsR);
 
-    OCIO::GammaOpData GammaOp2m(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData GammaOp2m(inBitDepth, outBitDepth, desc,
                                 OCIO::GammaOpData::MONCURVE_REV, 
                                 paramsR, paramsG, paramsR, paramsR);
 
     // Set blue param differently.
-    OCIO::GammaOpData GammaOp3m(inBitDepth, outBitDepth, id, desc,
+    OCIO::GammaOpData GammaOp3m(inBitDepth, outBitDepth, desc,
                                 OCIO::GammaOpData::MONCURVE_REV, 
                                 paramsR, paramsG, paramsG, paramsR);
 
-    OIIO_CHECK_ASSERT(GammaOp1m.isInverse(GammaOp2m));
-    OIIO_CHECK_ASSERT(!GammaOp1m.isInverse(GammaOp3m));
+    OCIO_CHECK_ASSERT(GammaOp1m.isInverse(GammaOp2m));
+    OCIO_CHECK_ASSERT(!GammaOp1m.isInverse(GammaOp3m));
 }
 
-OIIO_ADD_TEST(GammaOpData, mayCompose)
+OCIO_ADD_TEST(GammaOpData, mayCompose)
 {
     OCIO::GammaOpData::Params params1 = { 1.  };
     OCIO::GammaOpData::Params params2 = { 2.2 };
     OCIO::GammaOpData::Params params3 = { 2.6 };
 
     {
-        OCIO::GammaOpData g1(inBitDepth, OCIO::BIT_DEPTH_UINT8, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, OCIO::BIT_DEPTH_UINT8, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params2, params2, params2, params1);
-        OCIO::GammaOpData g2(OCIO::BIT_DEPTH_F16, outBitDepth, id, desc,
+        OCIO::GammaOpData g2(OCIO::BIT_DEPTH_F16, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params2, params2, params2, params1);
         // Note: Bit-depths don't need to match.
-        OIIO_CHECK_ASSERT(g1.mayCompose(g2));
+        OCIO_CHECK_ASSERT(g1.mayCompose(g2));
     }
 
     {
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params2, params2, params2, params2);
-        OCIO::GammaOpData g2(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g2(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params2, params2, params2, params2);
         // Non-identity alpha.
-        OIIO_CHECK_ASSERT(!g1.mayCompose(g2));
+        OCIO_CHECK_ASSERT(!g1.mayCompose(g2));
     }
 
     {
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params2, params2, params2, params1);
-        OCIO::GammaOpData g2(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g2(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_REV,
                              params3, params3, params3, params1);
         // Basic may be fwd or rev.
-        OIIO_CHECK_ASSERT(g1.mayCompose(g2));
+        OCIO_CHECK_ASSERT(g1.mayCompose(g2));
     }
 
     {
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params2, params2, params1, params1);
-        OCIO::GammaOpData g2(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g2(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params2, params2, params2, params1);
         // R == G != B params.
-        OIIO_CHECK_ASSERT(!g1.mayCompose(g2));
+        OCIO_CHECK_ASSERT(!g1.mayCompose(g2));
     }
 
     {
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_FWD,
                              params2, params2, params2, params1);
         params1.push_back(0.0);
         params3.push_back(0.1);
-        OCIO::GammaOpData g2(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g2(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::MONCURVE_FWD,
                              params3, params3, params3, params1);
         // Moncurve not allowed.
-        OIIO_CHECK_ASSERT(!g1.mayCompose(g2));
+        OCIO_CHECK_ASSERT(!g1.mayCompose(g2));
     }
 }
 
@@ -1164,30 +1173,30 @@ void CheckGammaCompose(OCIO::GammaOpData::Style style1,
 {
     static const OCIO::GammaOpData::Params paramsA = { 1. };
 
-    const OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+    const OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                                style1, 
                                params1, params1, params1, paramsA);
 
-    const OCIO::GammaOpData g2(inBitDepth, outBitDepth, id, desc,
+    const OCIO::GammaOpData g2(inBitDepth, outBitDepth, desc,
                                style2, 
                                params2, params2, params2, paramsA);
 
     const OCIO::GammaOpDataRcPtr g3 = g1.compose(g2);
 
-    OIIO_CHECK_EQUAL(g3->getInputBitDepth(), inBitDepth);
-    OIIO_CHECK_EQUAL(g3->getOutputBitDepth(), outBitDepth);
+    OCIO_CHECK_EQUAL(g3->getInputBitDepth(), inBitDepth);
+    OCIO_CHECK_EQUAL(g3->getOutputBitDepth(), outBitDepth);
 
-    OIIO_CHECK_EQUAL(g3->getStyle(), refStyle);
+    OCIO_CHECK_EQUAL(g3->getStyle(), refStyle);
 
-    OIIO_CHECK_ASSERT(g3->getRedParams()   == refParams);
-    OIIO_CHECK_ASSERT(g3->getGreenParams() == refParams);
-    OIIO_CHECK_ASSERT(g3->getBlueParams()  == refParams);
-    OIIO_CHECK_ASSERT(g3->getAlphaParams() == paramsA);
+    OCIO_CHECK_ASSERT(g3->getRedParams()   == refParams);
+    OCIO_CHECK_ASSERT(g3->getGreenParams() == refParams);
+    OCIO_CHECK_ASSERT(g3->getBlueParams()  == refParams);
+    OCIO_CHECK_ASSERT(g3->getAlphaParams() == paramsA);
 }
 
 };
 
-OIIO_ADD_TEST(GammaOpData, compose)
+OCIO_ADD_TEST(GammaOpData, compose)
 {
     {
         const OCIO::GammaOpData::Params params1 = { 2. };
@@ -1232,18 +1241,18 @@ OIIO_ADD_TEST(GammaOpData, compose)
     {
         const OCIO::GammaOpData::Params params1 = { 4. };
         OCIO::GammaOpData::Params paramsA = { 1. };
-        OCIO::GammaOpData g1(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g1(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::BASIC_REV, 
                              params1, params1, params1, paramsA);
 
         OCIO::GammaOpData::Params params2 = {2., 0.1};
         paramsA.push_back(0.0);
 
-        OCIO::GammaOpData g2(inBitDepth, outBitDepth, id, desc,
+        OCIO::GammaOpData g2(inBitDepth, outBitDepth, desc,
                              OCIO::GammaOpData::MONCURVE_REV, 
                              params2, params2, params2, paramsA);
 
-        OIIO_CHECK_THROW_WHAT(g1.compose(g2), 
+        OCIO_CHECK_THROW_WHAT(g1.compose(g2), 
                               OCIO::Exception, 
                               "GammaOp can only be combined with some GammaOps");
     }

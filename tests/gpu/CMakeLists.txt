@@ -1,17 +1,35 @@
-find_package(OpenGL REQUIRED)
-if(NOT APPLE)
-	find_package(GLEW REQUIRED)
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenColorIO Project.
+
+find_package(OpenGL QUIET)
+if(NOT OpenGL_FOUND)
+	message(WARNING "OpenGL not found. Skipping the GPU unit tests.")
+	return()
 endif()
-find_package(GLUT REQUIRED)
+
+if(NOT APPLE)
+	find_package(GLEW QUIET)
+	if(NOT GLEW_FOUND)
+		message(WARNING "GLEW not found. Skipping the GPU unit tests.")
+		return()
+	endif()
+endif()
+
+find_package(GLUT QUIET)
+if(NOT GLUT_FOUND)
+	message(WARNING "GLUT not found. Skipping the GPU unit tests.")
+	return()
+endif()
 
 set(SOURCES
 	CDLOps_test.cpp
 	Config_test.cpp
-	ExpOps_Test.cpp
+	ECOps_test.cpp
+	ExpOps_test.cpp
 	FixedFunctionOps_test.cpp
 	GPUHelpers.cpp
 	GPUUnitTest.cpp
-	LogOps_Test.cpp
+	LogOps_test.cpp
 	Lut1DOp_test.cpp
 	Lut3DOp_test.cpp
 	MatrixOps_test.cpp
@@ -39,6 +57,11 @@ if(OCIO_USE_SSE)
 			USE_SSE
 	)
 endif(OCIO_USE_SSE)
+
+if(APPLE)
+	# Mute the deprecated warning for some GLUT methods.
+	set(PLATFORM_COMPILE_FLAGS "${PLATFORM_COMPILE_FLAGS} -Wno-deprecated-declarations")
+endif()
 
 set_target_properties(test_gpu_exec PROPERTIES 
 	COMPILE_FLAGS "${PLATFORM_COMPILE_FLAGS}")

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Copyright Contributors to the OpenColorIO Project. -->
+
 # Contributing to OpenColorIO
 
 Thank you for your interest in contributing to OpenColorIO. This document
@@ -121,6 +124,10 @@ the work.
 in [Required Approvals](#required-approvals)), a Committer other than the PR
 contributor may squash and merge changes into the master branch.
 
+See also (from the OCIO Developer Guide):
+* [Getting started](http://opencolorio.org/developers/getting_started.html)
+* [Submitting Changes](http://opencolorio.org/developers/submitting_changes.html)
+
 ## Required Approvals
 
 Modifications of the contents of the OpenColorIO repository are made on a
@@ -172,3 +179,12 @@ through discussion.
 Committers may opt to elevate significant or controversial modifications to the
 TSC by assigning the `tsc-review` label to a pull request or issue. The TSC
 should serve as the final arbiter where required.
+
+## Coding Standards
+
+Please see the OpenColorIO
+[Coding guidelines](http://opencolorio.org/developers/coding_guidelines.html)
+for a reference on project code style and best practices.
+
+For standards on contributing to documentation, see the
+[Documentation guidelines](http://opencolorio.org/developers/documentation_guidelines.html).

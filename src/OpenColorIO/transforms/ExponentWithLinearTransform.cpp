@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <cstring>
 
@@ -32,7 +7,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "OpBuilders.h"
 #include "ops/Gamma/GammaOpData.h"
-#include "ops/Gamma/GammaOps.h"
 
 
 OCIO_NAMESPACE_ENTER
@@ -65,7 +39,9 @@ public:
 
         setStyle(GammaOpData::MONCURVE_FWD);
     }
-    
+
+    Impl(const Impl &) = delete;
+
     ~Impl()
     { }
     
@@ -78,10 +54,6 @@ public:
         }
         return *this;
     }
-
-
-private:        
-    Impl(const Impl & rhs);
 };
 
 ///////////////////////////////////////////////////////////////////////////
@@ -138,6 +110,16 @@ void ExponentWithLinearTransform::validate() const
         errMsg += ex.what();
         throw Exception(errMsg.c_str());
     }
+}
+
+FormatMetadata & ExponentWithLinearTransform::getFormatMetadata()
+{
+    return m_impl->getFormatMetadata();
+}
+
+const FormatMetadata & ExponentWithLinearTransform::getFormatMetadata() const
+{
+    return m_impl->getFormatMetadata();
 }
 
 void ExponentWithLinearTransform::setGamma(const double(&values)[4])
@@ -204,29 +186,6 @@ std::ostream& operator<< (std::ostream& os, const ExponentWithLinearTransform & 
     return os;
 }
 
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void BuildExponentWithLinearOps(OpRcPtrVec & ops,
-                                const Config & /*config*/,
-                                const ExponentWithLinearTransform & transform,
-                                TransformDirection dir)
-{
-    TransformDirection combinedDir 
-        = CombineTransformDirections(dir, transform.getDirection());
-    
-    double gamma4[4] = { 1., 1., 1., 1. };
-    transform.getGamma(gamma4);
-
-    double offset4[4] = { 0., 0., 0., 0. };
-    transform.getOffset(offset4);
-
-    CreateGammaOp(ops, "", OpData::Descriptions(),
-                  combinedDir==TRANSFORM_DIR_FORWARD ? GammaOpData::MONCURVE_FWD
-                                                     : GammaOpData::MONCURVE_REV,
-                  gamma4, offset4);
-}
-
 }
 OCIO_NAMESPACE_EXIT
 
@@ -237,7 +196,7 @@ OCIO_NAMESPACE_EXIT
 #ifdef OCIO_UNIT_TEST
 
 namespace OCIO = OCIO_NAMESPACE;
-#include "unittest.h"
+#include "UnitTest.h"
 
 
 namespace
@@ -247,40 +206,40 @@ void CheckValues(const double(&v1)[4], const double(&v2)[4])
 {
     static const float errThreshold = 1e-8f;
 
-    OIIO_CHECK_CLOSE(v1[0], v2[0], errThreshold);
-    OIIO_CHECK_CLOSE(v1[1], v2[1], errThreshold);
-    OIIO_CHECK_CLOSE(v1[2], v2[2], errThreshold);
-    OIIO_CHECK_CLOSE(v1[3], v2[3], errThreshold);
+    OCIO_CHECK_CLOSE(v1[0], v2[0], errThreshold);
+    OCIO_CHECK_CLOSE(v1[1], v2[1], errThreshold);
+    OCIO_CHECK_CLOSE(v1[2], v2[2], errThreshold);
+    OCIO_CHECK_CLOSE(v1[3], v2[3], errThreshold);
 }
 
 };
 
-OIIO_ADD_TEST(ExponentWithLinearTransform, basic)
+OCIO_ADD_TEST(ExponentWithLinearTransform, basic)
 {
     OCIO::ExponentWithLinearTransformRcPtr exp = OCIO::ExponentWithLinearTransform::Create();
-    OIIO_CHECK_EQUAL(exp->getDirection(), OCIO::TRANSFORM_DIR_FORWARD);
+    OCIO_CHECK_EQUAL(exp->getDirection(), OCIO::TRANSFORM_DIR_FORWARD);
 
     exp->setDirection(OCIO::TRANSFORM_DIR_INVERSE);
-    OIIO_CHECK_EQUAL(exp->getDirection(), OCIO::TRANSFORM_DIR_INVERSE);
+    OCIO_CHECK_EQUAL(exp->getDirection(), OCIO::TRANSFORM_DIR_INVERSE);
 
     double val4[4] = { -1., -1. -1. -1. };
 
-    OIIO_CHECK_NO_THROW(exp->getGamma(val4));
+    OCIO_CHECK_NO_THROW(exp->getGamma(val4));
     CheckValues(val4, { 1., 1., 1., 1. });
 
     val4[1] = 2.1234567;
-    OIIO_CHECK_NO_THROW(exp->setGamma(val4));
+    OCIO_CHECK_NO_THROW(exp->setGamma(val4));
     val4[1] = -1.;
-    OIIO_CHECK_NO_THROW(exp->getGamma(val4));
+    OCIO_CHECK_NO_THROW(exp->getGamma(val4));
     CheckValues(val4, {1., 2.1234567, 1., 1.});
 
-    OIIO_CHECK_NO_THROW(exp->getOffset(val4));
+    OCIO_CHECK_NO_THROW(exp->getOffset(val4));
     CheckValues(val4, { 0., 0., 0., 0. });
 
     val4[1] = 0.1234567;
-    OIIO_CHECK_NO_THROW(exp->setOffset(val4));
+    OCIO_CHECK_NO_THROW(exp->setOffset(val4));
     val4[1] = -1.;
-    OIIO_CHECK_NO_THROW(exp->getOffset(val4));
+    OCIO_CHECK_NO_THROW(exp->getOffset(val4));
     CheckValues(val4, { 0., 0.1234567, 0., 0. });
 }
 

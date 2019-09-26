@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2003-2010 Sony Pictures Imageworks Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 
 #ifndef INCLUDED_OCIO_BIT_DEPTH_UTILS_H
@@ -32,22 +7,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <OpenColorIO/OpenColorIO.h>
 
-#include "ilmbase/half.h"
+#include "OpenEXR/half.h"
 
 
 OCIO_NAMESPACE_ENTER
 {
 
-// This is used for normalizing various integer bit-depths relative to float.
-float GetBitDepthMaxValue(BitDepth in);
+// Returns a double since often times a ratio of calls to this function is used
+// to calculate a scale factor and this ratio needs to be done at double
+// precision to avoid slight errors in the scaled values.
+double GetBitDepthMaxValue(BitDepth in);
 
-// True if the bit depth is a float
+// True if the bit depth is a float.
 bool IsFloatBitDepth(BitDepth in);
-
-
-// Helper methods to manipulate Pixel Formats.
-inline BitDepth ExtractBitDepth(PixelFormat in) { return BitDepth(0x00FF&in); }
-inline ChannelOrdering ExtractChannelOrder(PixelFormat in) { return ChannelOrdering(0xFF00&in); }
 
 
 // Metaprogramming requires templated structures to access
@@ -99,8 +71,10 @@ template<> struct BitDepthInfo<BIT_DEPTH_F32>
     static const unsigned maxValue = 1;
 };
 
+// Infer the bit-depth scaling based on the largest value contained in the LUT.
+BitDepth GetBitdepthFromMaxValue(unsigned maxValue);
 
-// Clamp helper method
+// Clamp helper method.
 #define CLAMP(a, min, max) \
   ((a)>(max) ? (max) : ((min)>(a) ? (min) : (a)))
 

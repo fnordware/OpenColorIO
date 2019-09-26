@@ -1,39 +1,16 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #ifndef INCLUDED_OCIO_FILEFORMATS_XML_XMLREADERUTILS_H
 #define INCLUDED_OCIO_FILEFORMATS_XML_XMLREADERUTILS_H
 
+#include <string>
 #include <sstream>
 #include <vector>
 
 #include <OpenColorIO/OpenColorIO.h>
 
+#include "MathUtils.h"
 #include "Platform.h"
 
 OCIO_NAMESPACE_ENTER
@@ -50,6 +27,22 @@ static constexpr const char * TAG_SATNODEALT = "SATNode";
 static constexpr const char * TAG_SATURATION = "Saturation";
 static constexpr const char * TAG_SLOPE = "Slope";
 static constexpr const char * TAG_SOPNODE = "SOPNode";
+
+// This method truncates a string (mainly used for display purpose).
+inline std::string TruncateString(const char * pStr, size_t len)
+{
+    static const unsigned MAX_SIZE = 17;
+
+    std::string s(pStr, len);
+
+    if (s.size()>MAX_SIZE)
+    {
+        s.resize(MAX_SIZE);
+        s += "...";
+    }
+
+    return s;
+}
 
 void Trim(std::string & s);
 
@@ -77,14 +70,14 @@ inline bool IsNumberDelimiter(char c)
 
 // Find the position of the next character to start scanning at.
 // Delimiters checked are spaces, commas, tabs and newlines.
-inline size_t FindNextTokenStart(const char * s, size_t len, size_t pos)
+inline size_t FindNextTokenStart(const char * str, size_t len, size_t pos)
 {
-    const char * ptr = s + pos;
-
-    if (pos == len)
+    if (pos >= len)
     {
-        return pos;
+        return len;
     }
+
+    const char * ptr = str + pos;
 
     while (IsNumberDelimiter(*ptr))
     {
@@ -103,201 +96,98 @@ inline size_t FindNextTokenStart(const char * s, size_t len, size_t pos)
 // Delimiters checked are spaces and commas.
 inline size_t FindDelim(const char * str, size_t len, size_t pos)
 {
+    if (pos >= len)
+    {
+        return len;
+    }
+
     const char * ptr = str + pos;
 
     while (!IsNumberDelimiter(*ptr))
     {
-        if ((pos + 1) >= len)
+        ptr++; pos++;
+
+        if (pos >= len)
         {
             return len;
         }
-        ptr++; pos++;
     }
 
     return pos;
 }
 
-// Get first number from a string.
-// str should start with number.
-template<typename T>
-void ParseNumber(const char * str, size_t len, T & value)
+namespace
 {
-    const size_t end = FindDelim(str, len, 0);
-    if (end == 0)
+// When using an integer ParseNumber template, it is an error if the string
+// actually contains a number with a decimal part.
+template<typename T>
+bool IsValid(T value, double val) { return (double)value == val; }
+template<>
+bool IsValid(float, double) { return true; }
+template<>
+bool IsValid(double, double) { return true; }
+}
+
+// Get first number from a string between startPos & endPos.
+// EndPos should not be greater than length of the string.
+// Will throw if str[endPos-1] is not part of the number.
+// The character after the last one that is part of the number has to be
+// accessible (most likely str[endPos]).
+// Note: For performance reasons, this function does not copy the string
+//       unless an exception needs to be thrown.
+template<typename T>
+void ParseNumber(const char * str, size_t startPos, size_t endPos, T & value)
+{
+    if (endPos == startPos)
     {
-        throw Exception("ParseNumber: string should not start with a delimiter.");
+        throw Exception("ParseNumber: nothing to parse.");
     }
+
+    const char * startParse = str + startPos;
 
     double val = 0.0f;
-    const int matches = sscanf(str, "%lf", &val);
+    char * endParse = nullptr;
 
+    // The strtod expects a C string and str might not be null terminated.
+    // However since strtod will stop parsing when it encounters characters
+    // that it cannot convert to a number, in practice it does not need to
+    // be null terminated.
+    // C++11 version of strtod processes NAN & INF ASCII values.
+    val = strtod(startParse, &endParse);
     value = (T)val;
-
-    //
-    // Make sure we got a match, and that there was not decimal truncation
-    // due to a double value being read when an integer was expected.
-    //
-    if (matches == 0 || (double)value != val)
+    if (endParse == startParse)
     {
+        std::string fullStr(str, endPos);
+        std::string parsedStr(startParse, endPos - startPos);
         std::ostringstream oss;
-        oss << "ParseNumber: Characters '";
-        oss << std::string(str, len);
-        oss << "' are illegal.";
+        oss << "ParserNumber: Characters '"
+            << parsedStr
+            << "' can not be parsed to numbers in '"
+            << TruncateString(fullStr.c_str(), 100) << "'.";
         throw Exception(oss.str().c_str());
     }
-    else if (matches == -1)
+    else if (!IsValid(value, val))
     {
-        throw Exception("ParseNumber: error while scanning.");
+        std::string fullStr(str, endPos);
+        std::string parsedStr(startParse, endPos - startPos);
+        std::ostringstream oss;
+        oss << "ParserNumber: Characters '"
+            << parsedStr
+            << "' are illegal in '"
+            << TruncateString(fullStr.c_str(), 100) << "'.";
+        throw Exception(oss.str().c_str());
     }
-}
-
-// Get first number from a string (specialized for floats).
-// str should start with number.
-template<>
-inline void ParseNumber(const char * str, size_t len, float & value)
-{
-    const size_t end = FindDelim(str, len, 0);
-    if (end == 0)
+    else if (endParse != str + endPos)
     {
-        throw Exception("ParseNumber: string should not start with a delimiter.");
-    }
-
-    // Perhaps the float is not the only one.
-    len = end;
-
-    //
-    // First check whether the string is a float value.  If there is no
-    // match, only then do the infinity string comparison.
-    //
-
-    // Note: Always avoid to copy the string.
-    //
-    // Note: As str is a string (and not a raw buffer), the physical length
-    // is always at least len+1. So the code could manipulate str[len] content.
-    //
-    char* p = const_cast<char*>(str);
-    char t = '\0';
-    const bool resizeString = len != strlen(str);
-    if (resizeString)
-    {
-        t = str[len];
-        p[len] = '\0';
-    }
-    const int matches = sscanf(p, "%f", &value);
-    if (resizeString)
-    {
-        p[len] = t;
-    }
-
-    if (matches == 0)
-    {
-        //
-        // Did not get a float value match.  See if infinity is present.
-        // Only C99 nan and infinity representations are recognized.
-        //
-
-        if (((Platform::Strncasecmp(str, "INF", 3) == 0) && (end == 3)) ||
-            ((Platform::Strncasecmp(str, "INFINITY", 8) == 0) && (end == 8)))
-        {
-            value = std::numeric_limits<float>::infinity();
-        }
-        else if
-            (((Platform::Strncasecmp(str, "-INF", 4) == 0) && (end == 4)) ||
-            ((Platform::Strncasecmp(str, "-INFINITY", 9) == 0) && (end == 9)))
-        {
-            value = -std::numeric_limits<float>::infinity();
-        }
-        else if (Platform::Strncasecmp(str, "NAN", 3) == 0 ||
-                 Platform::Strncasecmp(str, "-NAN", 4) == 0)
-        {
-            value = std::numeric_limits<float>::quiet_NaN();
-        }
-        else
-        {
-            // No inifity match, bad value in file.
-            std::ostringstream ss;
-            ss << "ParserNumber: Characters '" << str << "' are illegal.";
-            throw Exception(ss.str().c_str());
-        }
-    }
-    else if (matches == -1)
-    {
-        throw Exception("ParseNumber: error while scanning.");
-    }
-}
-
-// Get first number from a string (specialized for double)
-// str should start with number.
-template<>
-inline void ParseNumber(const char * str, size_t len, double & value)
-{
-    const size_t end = FindDelim(str, len, 0);
-    if (end == 0)
-    {
-        throw Exception("ParseNumber: string should not start with a delimiter.");
-    }
-
-    // Perhaps the double is not the only one.
-    len = end;
-
-    //
-    // First check whether the string is a double value.  If there is no
-    // match, only then do the infinity string comparison.
-    //
-
-    // Note: Always avoid to copy the string.
-    //
-    // Note: As str is a string (and not a raw buffer), the physical length
-    // is always at least len+1. So the code could manipulate str[len] content.
-    //
-    char* p = const_cast<char*>(str);
-    char t = '\0';
-    const bool resizeString = len != strlen(str);
-    if (resizeString)
-    {
-        t = str[len];
-        p[len] = '\0';
-    }
-    const int matches = sscanf(p, "%lf", &value);
-    if (resizeString)
-    {
-        p[len] = t;
-    }
-
-    if (matches == 0)
-    {
-        //
-        // Did not get a double value match.  See if infinity is present.
-        // Only C99 nan and infinity representations are recognized.
-        //
-
-        if (((Platform::Strncasecmp(str, "INF", 3) == 0) && (end == 3)) ||
-            ((Platform::Strncasecmp(str, "INFINITY", 8) == 0) && (end == 8)))
-        {
-            value = std::numeric_limits<double>::infinity();
-        }
-        else if
-            (((Platform::Strncasecmp(str, "-INF", 4) == 0) && (end == 4)) ||
-            ((Platform::Strncasecmp(str, "-INFINITY", 9) == 0) && (end == 9)))
-        {
-            value = -std::numeric_limits<double>::infinity();
-        }
-        else if (Platform::Strncasecmp(str, "NAN", 3) == 0 ||
-                 Platform::Strncasecmp(str, "-NAN", 4) == 0)
-        {
-            value = std::numeric_limits<double>::quiet_NaN();
-        }
-        else
-        {
-            // No inifity match, bad value in file.
-            std::ostringstream ss;
-            ss << "ParserNumber: Characters '" << str << "' are illegal.";
-            throw Exception(ss.str().c_str());
-        }
-    }
-    else if (matches == -1)
-    {
-        throw Exception("ParseNumber: error while scanning.");
+        // Number is followed by something.
+        std::string fullStr(str, startPos + (endParse - startParse));
+        std::string parsedStr(startParse, endPos - startPos);
+        std::ostringstream oss;
+        oss << "ParserNumber: '"
+            << parsedStr
+            << "' number is followed by unexpected characters in '"
+            << TruncateString(fullStr.c_str(), 100) << "'.";
+        throw Exception(oss.str().c_str());
     }
 }
 
@@ -311,12 +201,13 @@ void GetNextNumber(const char * s, size_t len, size_t & pos, T & num)
 
     if (pos != len)
     {
-        ParseNumber(s + pos, len - pos, num);
+        size_t nextPos = FindDelim(s, len, pos);
+        ParseNumber(s, pos, nextPos, num);
+        pos = nextPos;
 
-        pos = FindDelim(s, len, pos);
         if (pos != len)
         {
-            pos = FindNextTokenStart(s, len, pos);
+            pos = FindNextTokenStart(s, len, nextPos);
         }
     }
 }
@@ -337,22 +228,6 @@ std::vector<T> GetNumbers(const char * str, size_t len)
     }
 
     return numbers;
-}
-
-// This method truncates a string (mainly used for display purpose).
-inline std::string TruncateString(const char * pStr, size_t len)
-{
-    static const unsigned MAX_SIZE = 17;
-
-    std::string s(pStr, len);
-
-    if (s.size()>MAX_SIZE)
-    {
-        s.resize(MAX_SIZE);
-        s += "...";
-    }
-
-    return s;
 }
 
 }

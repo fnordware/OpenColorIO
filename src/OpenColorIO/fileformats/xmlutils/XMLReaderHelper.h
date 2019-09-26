@@ -1,39 +1,17 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #ifndef INCLUDED_OCIO_FILEFORMATS_XMLUTILS_XMLREADERHELPER_H
 #define INCLUDED_OCIO_FILEFORMATS_XMLUTILS_XMLREADERHELPER_H
 
-#include <string>
+#include <string.h>
 
 #include <OpenColorIO/OpenColorIO.h>
 
+#include "fileformats/xmlutils/XMLReaderUtils.h"
 #include "ops/CDL/CDLOpData.h"
+#include "PrivateTypes.h"
+#include "transforms/CDLTransform.h"
 
 OCIO_NAMESPACE_ENTER
 {
@@ -86,6 +64,38 @@ public:
 
     void throwMessage(const std::string & error) const;
 
+protected:
+    template<typename T>
+    void parseScalarAttribute(const char * name, const char * attrib, T & value)
+    {
+        const size_t len = strlen(attrib);
+        std::vector<T> data;
+
+        try
+        {
+            data = GetNumbers<T>(attrib, len);
+        }
+        catch (Exception & ce)
+        {
+            std::ostringstream oss;
+            oss << "For parameter: '";
+            oss << name << "'. ";
+            oss << ce.what();
+            throwMessage(oss.str());
+        }
+
+        if (data.size() != 1)
+        {
+            std::ostringstream oss;
+            oss << "For parameter: '";
+            oss << name << "'. ";
+            oss << "Expecting 1 value, found " << data.size() << " values.";
+            throwMessage(oss.str());
+        }
+
+        value = data[0];
+    }
+
 private:
     std::string  m_name;
     unsigned int m_xmlLineNumber;
@@ -120,7 +130,7 @@ public:
         return true;
     }
 
-    virtual void appendDescription(const std::string & desc) = 0;
+    virtual void appendMetadata(const std::string & name, const std::string & value) = 0;
 
 private:
     XmlReaderContainerElt() = delete;
@@ -185,7 +195,8 @@ class XmlReaderDummyElt : public XmlReaderPlainElt
     class DummyParent : public XmlReaderContainerElt
     {
     public:
-        DummyParent(ElementRcPtr pParent)
+        DummyParent() = delete;
+        DummyParent(ElementRcPtr & pParent)
             : XmlReaderContainerElt(pParent.get() ? pParent->getName() : "",
                                     pParent.get() ? pParent->getXmlLineNumber() : 0,
                                     pParent.get() ? pParent->getXmlFile() : "")
@@ -195,7 +206,7 @@ class XmlReaderDummyElt : public XmlReaderPlainElt
         {
         }
 
-        void appendDescription(const std::string & desc) override
+        void appendMetadata(const std::string & /*name*/, const std::string & /*value*/) override
         {
         }
 
@@ -247,7 +258,7 @@ public:
     }
 
 private:
-    std::vector<std::string> m_rawData;
+    StringVec m_rawData;
 };
 
 typedef OCIO_SHARED_PTR<XmlReaderDummyElt> DummyEltRcPtr;
@@ -256,8 +267,9 @@ typedef OCIO_SHARED_PTR<XmlReaderDummyElt> DummyEltRcPtr;
 class XmlReaderDescriptionElt : public XmlReaderPlainElt
 {
 public:
+    XmlReaderDescriptionElt() = delete;
     XmlReaderDescriptionElt(const std::string & name,
-                            ContainerEltRcPtr pParent,
+                            ContainerEltRcPtr & pParent,
                             unsigned int xmlLocation,
                             const std::string & xmlFile)
         : XmlReaderPlainElt(name, pParent, xmlLocation, xmlFile)
@@ -322,7 +334,7 @@ public:
         return getName().c_str();
     }
 
-    void appendDescription(const std::string & desc) override
+    void appendMetadata(const std::string & /*name*/, const std::string & /*value*/) override
     {
     }
 
@@ -375,16 +387,12 @@ public:
     void setIsOffsetInit(bool status) { m_isOffsetInit = status; }
     void setIsPowerInit(bool status) { m_isPowerInit = status; }
 
-    void appendDescription(const std::string & desc) override
+    void appendMetadata(const std::string & name, const std::string & value) override
     {
-        // TODO: OCIO only keep the first description.
-        OpData::Descriptions & curDesc = getCDL()->getDescriptions();
-        if (curDesc.empty())
-        {
-            curDesc += desc;
-        }
+        // Add description to parent and override name.
+        FormatMetadataImpl item(METADATA_SOP_DESCRIPTION, value);
+        getCDL()->getFormatMetadata().getChildrenElements().push_back(item);
     }
-
 
 private:
     XmlReaderSOPNodeBaseElt() = delete;
@@ -439,6 +447,14 @@ public:
 
     virtual const CDLOpDataRcPtr & getCDL() const = 0;
 
+    void appendMetadata(const std::string & name, const std::string & value) override
+    {
+        // Add description to parent and override name.
+        FormatMetadataImpl item(METADATA_SAT_DESCRIPTION, value);
+        getCDL()->getFormatMetadata().getChildrenElements().push_back(item);
+    }
+
+
 private:
     XmlReaderSatNodeBaseElt() = delete;
 };
@@ -473,6 +489,9 @@ class XmlReaderElementStack
 
 public:
     XmlReaderElementStack();
+
+    XmlReaderElementStack(const XmlReaderElementStack &) = delete;
+    XmlReaderElementStack & operator=(const XmlReaderElementStack &) = delete;
 
     virtual ~XmlReaderElementStack();
 

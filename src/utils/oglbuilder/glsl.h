@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 
 #ifndef INCLUDED_OCIO_GLSL_H_
@@ -49,23 +24,44 @@ class OpenGLBuilder
 {
     struct TextureId
     {
-        unsigned id;
-        std::string name;
-        unsigned type;
+        unsigned m_id = -1;
+        std::string m_name;
+        unsigned m_type = -1;
 
-        TextureId():
-            id(-1),
-            type(-1)
-        {}
-
-        TextureId(unsigned id, const std::string& name, unsigned type):
-            id(id),
-            name(name),
-            type(type)
+        TextureId(unsigned id, const std::string& name, unsigned type)
+            : m_id(id)
+            , m_name(name)
+            , m_type(type)
         {}
     };
 
     typedef std::vector<TextureId> TextureIds;
+
+    // Uniform are used for dynamic parameters.
+    class Uniform
+    {
+    public:
+        Uniform(const std::string & name,
+                DynamicPropertyRcPtr v)
+            : m_name(name)
+            , m_value(v)
+            , m_handle(0)
+        {
+        }
+
+        void setUp(unsigned program);
+
+        void use();
+
+        DynamicPropertyRcPtr & getValue();
+
+    private:
+        Uniform() = delete;
+        std::string m_name;
+        DynamicPropertyRcPtr m_value;
+        GLuint m_handle;
+    };
+    typedef std::vector<Uniform> Uniforms;
 
 public:
     // Create an OpenGL builder using the GPU shader information from a specific processor
@@ -77,9 +73,12 @@ public:
     inline bool isVerbose() const { return m_verbose; }
 
     // Allocate & upload all the needed textures
-    //  (i.e. the index is the first available index for any kind of textures)
+    //  (i.e. the index is the first available index for any kind of textures).
     void allocateAllTextures(unsigned startIndex);
     void useAllTextures();
+
+    // Update all uniforms.
+    void useAllUniforms();
 
     // Build the complete shader program which includes the OCIO shader program 
     // and the client shader program.
@@ -94,7 +93,11 @@ public:
 protected:
     OpenGLBuilder(const GpuShaderDescRcPtr & gpuShader);
 
+    // Prepare all the needed uniforms.
+    void linkAllUniforms();
+
     void deleteAllTextures();
+    void deleteAllUniforms();
 
 private:
     OpenGLBuilder();
@@ -104,10 +107,11 @@ private:
     const GpuShaderDescRcPtr m_shaderDesc; // Description of the fragment shader to create
     unsigned m_startIndex;                 // Starting index for texture allocations
     TextureIds m_textureIds;               // Texture ids of all needed textures
+    Uniforms m_uniforms;                   // Vector of dynamic parameters
     unsigned m_fragShader;                 // Fragment shader identifier
     unsigned m_program;                    // Program identifier
     std::string m_shaderCacheID;           // Current shader program key
-    bool m_verbose;
+    bool m_verbose;                        // Print shader code to std::cout for debugging purposes
 };
 
 }

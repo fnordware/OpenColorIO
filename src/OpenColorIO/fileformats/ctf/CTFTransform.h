@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2018 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 
 #ifndef INCLUDED_OCIO_FILEFORMATS_CTF_CTFTRANSFORM_H
@@ -34,8 +9,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <OpenColorIO/OpenColorIO.h>
 
+#include "fileformats/FormatMetadata.h"
+#include "fileformats/xmlutils/XMLWriterUtils.h"
 #include "Op.h"
-#include "ops/Metadata.h"
 
 OCIO_NAMESPACE_ENTER
 {
@@ -130,12 +106,12 @@ static const CTFVersion CTF_PROCESS_LIST_VERSION_1_7 = CTFVersion(1, 7);
 // Version 1.8 2017-10 adds Function op as a valid element in CTF files.
 static const CTFVersion CTF_PROCESS_LIST_VERSION_1_8 = CTFVersion(1, 8);
 
-// TODO: follow CTF format changes.
-// static const CTFVersion CTF_PROCESS_LIST_VERSION_1_9 = CTFVersion(1, 9);
+// TODO: Version 2.0 (TBD) sync with OCIO and incorporate CLF v3 changes.
+static const CTFVersion CTF_PROCESS_LIST_VERSION_2_0 = CTFVersion(2, 0);
 
 // Add new version before this line
 // and do not forget to update the following line.
-static const CTFVersion CTF_PROCESS_LIST_VERSION = CTF_PROCESS_LIST_VERSION_1_8;
+static const CTFVersion CTF_PROCESS_LIST_VERSION = CTF_PROCESS_LIST_VERSION_2_0;
 
 
 // Version 1.0 initial Autodesk version for InfoElt.
@@ -154,6 +130,7 @@ class CTFReaderTransform
 {
 public:
     CTFReaderTransform();
+    CTFReaderTransform(const OpRcPtrVec & ops, const FormatMetadataImpl & metadata);
 
     ~CTFReaderTransform()
     {
@@ -183,23 +160,27 @@ public:
     {
         m_inverseOfId = id;
     }
-    Metadata & getInfo()
+    FormatMetadataImpl & getInfoMetadata()
     {
-        return m_info;
+        return m_infoMetadata;
     }
-    const OpDataVec & getOps() const
+    const FormatMetadataImpl & getInfoMetadata() const
+    {
+        return m_infoMetadata;
+    }
+    const ConstOpDataVec & getOps() const
     {
         return m_ops;
     }
-    OpDataVec & getOps()
+    ConstOpDataVec & getOps()
     {
         return m_ops;
     }
-    const OpData::Descriptions & getDescriptions() const
+    const StringVec & getDescriptions() const
     {
         return m_descriptions;
     }
-    OpData::Descriptions & getDescriptions()
+    StringVec & getDescriptions()
     {
         return m_descriptions;
     }
@@ -231,15 +212,19 @@ public:
 
     void validate();
 
+    void fromMetadata(const FormatMetadataImpl & metadata);
+    void toMetadata(FormatMetadataImpl & metadata) const;
+
 private:
     std::string m_id;
     std::string m_name;
     std::string m_inverseOfId;
     std::string m_inDescriptor;
     std::string m_outDescriptor;
-    Metadata m_info;
-    OpDataVec m_ops;
-    OpData::Descriptions m_descriptions;
+    FormatMetadataImpl m_infoMetadata;
+    
+    ConstOpDataVec m_ops;
+    StringVec m_descriptions;
                 
     // CTF version used even for CLF files.
     // CLF versions <= 2.0 are interpreted as CTF version 1.7.
@@ -251,6 +236,38 @@ private:
 };
 
 typedef OCIO_SHARED_PTR<CTFReaderTransform> CTFReaderTransformPtr;
+typedef OCIO_SHARED_PTR<const CTFReaderTransform> ConstCTFReaderTransformPtr;
+
+class TransformWriter : public XmlElementWriter
+{
+public:
+    TransformWriter() = delete;
+    TransformWriter(const TransformWriter &) = delete;
+    TransformWriter& operator=(const TransformWriter &) = delete;
+
+    TransformWriter(XmlFormatter & formatter,
+                    ConstCTFReaderTransformPtr transform,
+                    bool isCLF);
+
+    virtual ~TransformWriter();
+
+    void write() const override;
+
+private:
+    void writeProcessListMetadata(const FormatMetadataImpl & m) const;
+    void writeOpMetadata(const FormatMetadataImpl & m) const;
+    void writeOps() const;
+
+private:
+    ConstCTFReaderTransformPtr m_transform;
+    bool                       m_isCLF;
+};
+
+
+// Helper function to extract the values of FormatMetadata elements with a
+// given name. Used to get Description values.
+void GetElementsValues(const FormatMetadataImpl::Elements & elements,
+                       const std::string & name, StringVec & values);
 
 }
 OCIO_NAMESPACE_EXIT

@@ -1,30 +1,5 @@
-/*
-Copyright (c) 2019 Autodesk Inc., et al.
-All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of Sony Pictures Imageworks nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenColorIO Project.
 
 #include <algorithm>
 #include <cmath>
@@ -44,8 +19,10 @@ OCIO_NAMESPACE_ENTER
 class LogOpCPU : public OpCPU
 {
 public:
+    LogOpCPU() = delete;
+    LogOpCPU(const LogOpCPU &) = delete;
 
-    LogOpCPU(ConstLogOpDataRcPtr & log);
+    explicit LogOpCPU(ConstLogOpDataRcPtr & log);
 
 protected:
     // Update renderer parameters.
@@ -55,9 +32,6 @@ protected:
     float m_inScale;
     float m_outScale;
     float m_alphaScale;
-
-private:
-    LogOpCPU() = delete;
 };
 
 // Base class for LogToLin and LinToLog renderers.
@@ -119,10 +93,10 @@ private:
     float m_log2_base;
 };
 
-static const float LOG2_10 = ((float) 3.3219280948873623478703194294894);
-static const float LOG10_2 = ((float) 0.3010299956639811952137388947245);
+static constexpr float LOG2_10 = ((float) 3.3219280948873623478703194294894);
+static constexpr float LOG10_2 = ((float) 0.3010299956639811952137388947245);
 
-OpCPURcPtr GetLogRenderer(ConstLogOpDataRcPtr & log)
+ConstOpCPURcPtr GetLogRenderer(ConstLogOpDataRcPtr & log)
 {
     const TransformDirection dir = log->getDirection();
     if (log->isLog2())
@@ -564,7 +538,7 @@ OCIO_NAMESPACE_EXIT
 #ifdef OCIO_UNIT_TEST
 
 namespace OCIO = OCIO_NAMESPACE;
-#include "unittest.h"
+#include "UnitTest.h"
 
 void TestLog(float logBase)
 {
@@ -584,7 +558,7 @@ void TestLog(float logBase)
     OCIO::ConstLogOpDataRcPtr logOp = std::make_shared<OCIO::LogOpData>(
         logBase, OCIO::TRANSFORM_DIR_FORWARD);
 
-    OCIO::OpCPURcPtr pRenderer = OCIO::GetLogRenderer(logOp);
+    OCIO::ConstOpCPURcPtr pRenderer = OCIO::GetLogRenderer(logOp);
     pRenderer->apply(rgba, rgba, 8);
 
     const float minValue = std::numeric_limits<float>::min();
@@ -608,27 +582,27 @@ void TestLog(float logBase)
             expected = logf(std::max(minValue, (float)expected)) / logf(logBase);
         }
 
-        OIIO_CHECK_CLOSE(result, expected, error);
+        OCIO_CHECK_CLOSE(result, expected, error);
     }
 
     const float resMin = logf(minValue) / logf(logBase);
-    OIIO_CHECK_CLOSE(rgba[8], resMin, error);
-    OIIO_CHECK_EQUAL(rgba[11], 0.0f);
-    OIIO_CHECK_CLOSE(rgba[12], resMin, error);
-    OIIO_CHECK_ASSERT(OCIO::IsNan(rgba[15]));
+    OCIO_CHECK_CLOSE(rgba[8], resMin, error);
+    OCIO_CHECK_EQUAL(rgba[11], 0.0f);
+    OCIO_CHECK_CLOSE(rgba[12], resMin, error);
+    OCIO_CHECK_ASSERT(OCIO::IsNan(rgba[15]));
     // SSE implementation of sseLog2 & sseExp2 do not behave like CPU for
     // infinity & NaN. Some tests had to be disabled.
-    //OIIO_CHECK_EQUAL(rgba[16], inf);
-    OIIO_CHECK_EQUAL(rgba[19], 0.0f);
-    OIIO_CHECK_CLOSE(rgba[20], resMin, error);
-    OIIO_CHECK_EQUAL(rgba[23], inf);
-    OIIO_CHECK_CLOSE(rgba[24], resMin, error);
-    OIIO_CHECK_EQUAL(rgba[27], 0.0f);
-    OIIO_CHECK_CLOSE(rgba[28], resMin, error);
-    OIIO_CHECK_EQUAL(rgba[31], -inf);
+    //OCIO_CHECK_EQUAL(rgba[16], inf);
+    OCIO_CHECK_EQUAL(rgba[19], 0.0f);
+    OCIO_CHECK_CLOSE(rgba[20], resMin, error);
+    OCIO_CHECK_EQUAL(rgba[23], inf);
+    OCIO_CHECK_CLOSE(rgba[24], resMin, error);
+    OCIO_CHECK_EQUAL(rgba[27], 0.0f);
+    OCIO_CHECK_CLOSE(rgba[28], resMin, error);
+    OCIO_CHECK_EQUAL(rgba[31], -inf);
 }
 
-OIIO_ADD_TEST(LogOpCPU, log_test)
+OCIO_ADD_TEST(LogOpCPU, log_test)
 {
     // Log base 10 case, no scaling.
     TestLog(10.0f);
@@ -656,7 +630,7 @@ void TestAntiLog(float logBase)
     OCIO::ConstLogOpDataRcPtr logOp = std::make_shared<OCIO::LogOpData>(
         logBase, OCIO::TRANSFORM_DIR_INVERSE);
 
-    OCIO::OpCPURcPtr pRenderer = OCIO::GetLogRenderer(logOp);
+    OCIO::ConstOpCPURcPtr pRenderer = OCIO::GetLogRenderer(logOp);
     pRenderer->apply(rgba, rgba, 8);
 
     // Relative error tolerance for the log2 approximation.
@@ -675,23 +649,23 @@ void TestAntiLog(float logBase)
 
         // LogOpCPU implementation uses optimized logarithm approximation
         // cannot use strict comparison.
-        OIIO_CHECK_ASSERT(OCIO::EqualWithSafeRelError(result, expected, rtol, 1.0f));
+        OCIO_CHECK_ASSERT(OCIO::EqualWithSafeRelError(result, expected, rtol, 1.0f));
     }
-    //OIIO_CHECK_ASSERT(OCIO::IsNan(rgba[8]));
-    OIIO_CHECK_EQUAL(rgba[11], 0.0f);
-    OIIO_CHECK_CLOSE(rgba[12], 1.0f, rtol);
-    OIIO_CHECK_ASSERT(OCIO::IsNan(rgba[15]));
-    //OIIO_CHECK_EQUAL(rgba[16], inf);
-    OIIO_CHECK_EQUAL(rgba[19], 0.0f);
-    OIIO_CHECK_CLOSE(rgba[20], 1.0f, rtol);
-    OIIO_CHECK_EQUAL(rgba[23], inf);
-    //OIIO_CHECK_EQUAL(rgba[24], 0.0f);
-    OIIO_CHECK_EQUAL(rgba[27], 0.0f);
-    OIIO_CHECK_CLOSE(rgba[28], 1.0f, rtol);
-    OIIO_CHECK_EQUAL(rgba[31], -inf);
+    //OCIO_CHECK_ASSERT(OCIO::IsNan(rgba[8]));
+    OCIO_CHECK_EQUAL(rgba[11], 0.0f);
+    OCIO_CHECK_CLOSE(rgba[12], 1.0f, rtol);
+    OCIO_CHECK_ASSERT(OCIO::IsNan(rgba[15]));
+    //OCIO_CHECK_EQUAL(rgba[16], inf);
+    OCIO_CHECK_EQUAL(rgba[19], 0.0f);
+    OCIO_CHECK_CLOSE(rgba[20], 1.0f, rtol);
+    OCIO_CHECK_EQUAL(rgba[23], inf);
+    //OCIO_CHECK_EQUAL(rgba[24], 0.0f);
+    OCIO_CHECK_EQUAL(rgba[27], 0.0f);
+    OCIO_CHECK_CLOSE(rgba[28], 1.0f, rtol);
+    OCIO_CHECK_EQUAL(rgba[31], -inf);
 }
 
-OIIO_ADD_TEST(LogOpCPU, anti_log_test)
+OCIO_ADD_TEST(LogOpCPU, anti_log_test)
 {
     // Anti-Log base 10 case, no scaling.
     TestAntiLog(10.0f);
@@ -723,7 +697,7 @@ float ComputeLog2LinEval(float in, const OCIO::LogUtil::CTFParams::Params & para
            - offset + shadow;
 }
 
-OIIO_ADD_TEST(LogOpCPU, log2lin_test)
+OCIO_ADD_TEST(LogOpCPU, log2lin_test)
 {
     const float qnan = std::numeric_limits<float>::quiet_NaN();
     const float inf = std::numeric_limits<float>::infinity();
@@ -772,7 +746,7 @@ OIIO_ADD_TEST(LogOpCPU, log2lin_test)
         OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32,
         dir, base, paramsR, paramsG, paramsB);
 
-    OCIO::OpCPURcPtr pRenderer = OCIO::GetLogRenderer(logOp);
+    OCIO::ConstOpCPURcPtr pRenderer = OCIO::GetLogRenderer(logOp);
     pRenderer->apply(rgba, rgba, 8);
 
     const OCIO::LogUtil::CTFParams::Params noParam;
@@ -803,28 +777,28 @@ OIIO_ADD_TEST(LogOpCPU, log2lin_test)
 
         // LogOpCPU implementation uses optimized logarithm approximation
         // cannot use strict comparison.
-        OIIO_CHECK_ASSERT(OCIO::EqualWithSafeRelError(result, expected, rtol, 1.0f));
+        OCIO_CHECK_ASSERT(OCIO::EqualWithSafeRelError(result, expected, rtol, 1.0f));
     }
 
     const float res0 = ComputeLog2LinEval(0.0f, redP);
 
-    //OIIO_CHECK_ASSERT(OCIO::IsNan(rgba[8]));
-    OIIO_CHECK_EQUAL(rgba[11], 0.0f);
+    //OCIO_CHECK_ASSERT(OCIO::IsNan(rgba[8]));
+    OCIO_CHECK_EQUAL(rgba[11], 0.0f);
 
-    OIIO_CHECK_CLOSE(rgba[12], res0, rtol);
-    OIIO_CHECK_ASSERT(OCIO::IsNan(rgba[15]));
+    OCIO_CHECK_CLOSE(rgba[12], res0, rtol);
+    OCIO_CHECK_ASSERT(OCIO::IsNan(rgba[15]));
 
-    //OIIO_CHECK_EQUAL(rgba[16], inf);
-    OIIO_CHECK_EQUAL(rgba[19], 0.0f);
+    //OCIO_CHECK_EQUAL(rgba[16], inf);
+    OCIO_CHECK_EQUAL(rgba[19], 0.0f);
 
-    OIIO_CHECK_CLOSE(rgba[20], res0, rtol);
-    OIIO_CHECK_EQUAL(rgba[23], inf);
+    OCIO_CHECK_CLOSE(rgba[20], res0, rtol);
+    OCIO_CHECK_EQUAL(rgba[23], inf);
 
-    //OIIO_CHECK_CLOSE(rgba[24], ComputeLog2LinEval(-inf, redP), rtol);
-    OIIO_CHECK_EQUAL(rgba[27], 0.0f);
+    //OCIO_CHECK_CLOSE(rgba[24], ComputeLog2LinEval(-inf, redP), rtol);
+    OCIO_CHECK_EQUAL(rgba[27], 0.0f);
 
-    OIIO_CHECK_CLOSE(rgba[28], res0, rtol);
-    OIIO_CHECK_EQUAL(rgba[31], -inf);
+    OCIO_CHECK_CLOSE(rgba[28], res0, rtol);
+    OCIO_CHECK_EQUAL(rgba[31], -inf);
 }
 
 float ComputeLin2LogEval(float in, const OCIO::LogUtil::CTFParams::Params & params)
@@ -852,7 +826,7 @@ float ComputeLin2LogEval(float in, const OCIO::LogUtil::CTFParams::Params & para
            / mult_factor + refWhite;
 }
 
-OIIO_ADD_TEST(LogOpCPU, lin2log_test)
+OCIO_ADD_TEST(LogOpCPU, lin2log_test)
 {
     const float qnan = std::numeric_limits<float>::quiet_NaN();
     const float inf = std::numeric_limits<float>::infinity();
@@ -901,7 +875,7 @@ OIIO_ADD_TEST(LogOpCPU, lin2log_test)
         OCIO::BIT_DEPTH_F32, OCIO::BIT_DEPTH_F32,
         dir, base, paramsR, paramsG, paramsB);
 
-    OCIO::OpCPURcPtr pRenderer = OCIO::GetLogRenderer(logOp);
+    OCIO::ConstOpCPURcPtr pRenderer = OCIO::GetLogRenderer(logOp);
     pRenderer->apply(rgba, rgba, 8);
 
     const OCIO::LogUtil::CTFParams::Params noParam;
@@ -930,29 +904,29 @@ OIIO_ADD_TEST(LogOpCPU, lin2log_test)
 
         // LogOpCPU implementation uses optimized logarithm approximation
         // cannot use strict comparison
-        OIIO_CHECK_CLOSE(result, expected, error);
+        OCIO_CHECK_CLOSE(result, expected, error);
     }
 
     const float res0 = ComputeLin2LogEval(0.0f, redP);
     const float resMin = ComputeLin2LogEval(-100.0f, redP);
 
-    OIIO_CHECK_CLOSE(rgba[8], resMin, error);
-    OIIO_CHECK_EQUAL(rgba[11], 0.0f);
+    OCIO_CHECK_CLOSE(rgba[8], resMin, error);
+    OCIO_CHECK_EQUAL(rgba[11], 0.0f);
 
-    OIIO_CHECK_CLOSE(rgba[12], res0, error);
-    OIIO_CHECK_ASSERT(OCIO::IsNan(rgba[15]));
+    OCIO_CHECK_CLOSE(rgba[12], res0, error);
+    OCIO_CHECK_ASSERT(OCIO::IsNan(rgba[15]));
 
-    //OIIO_CHECK_EQUAL(rgba[16], inf);
-    OIIO_CHECK_EQUAL(rgba[19], 0.0f);
+    //OCIO_CHECK_EQUAL(rgba[16], inf);
+    OCIO_CHECK_EQUAL(rgba[19], 0.0f);
 
-    OIIO_CHECK_CLOSE(rgba[20], res0, error);
-    OIIO_CHECK_EQUAL(rgba[23], inf);
+    OCIO_CHECK_CLOSE(rgba[20], res0, error);
+    OCIO_CHECK_EQUAL(rgba[23], inf);
 
-    OIIO_CHECK_CLOSE(rgba[24], resMin, error);
-    OIIO_CHECK_EQUAL(rgba[27], 0.0f);
+    OCIO_CHECK_CLOSE(rgba[24], resMin, error);
+    OCIO_CHECK_EQUAL(rgba[27], 0.0f);
 
-    OIIO_CHECK_CLOSE(rgba[28], res0, error);
-    OIIO_CHECK_EQUAL(rgba[31], -inf);
+    OCIO_CHECK_CLOSE(rgba[28], res0, error);
+    OCIO_CHECK_EQUAL(rgba[31], -inf);
 }
 
 // TODO: Test bitdepth support scaling - (logOp_Log_withScaling_test)
