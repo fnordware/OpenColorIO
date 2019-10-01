@@ -291,7 +291,7 @@ static NSString *standardPath = @"/Library/Application Support/OpenColorIO";
                         throw OCIO::Exception("Failed to get ICC profile");
 
                     
-                    OCIO::ConstProcessorRcPtr processor;
+                    OCIO::ConstCPUProcessorRcPtr processor;
                     
                     if(action == CACTION_CONVERT)
                     {

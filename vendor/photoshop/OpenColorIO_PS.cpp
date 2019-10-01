@@ -378,7 +378,7 @@ static inline float Clamp(const float &f)
 }
 
 template <typename T, int max, bool round, bool clamp>
-static void ConvertRow(T *row, int len, OCIO::ConstProcessorRcPtr processor)
+static void ConvertRow(T *row, int len, OCIO::ConstCPUProcessorRcPtr processor)
 {
     float *floatRow = NULL;
     
@@ -429,7 +429,7 @@ static void ConvertRow(T *row, int len, OCIO::ConstProcessorRcPtr processor)
 }
 
 
-static void ProcessTile(GPtr globals, void *tileData, VRect &tileRect, int32 rowBytes, OCIO::ConstProcessorRcPtr processor)
+static void ProcessTile(GPtr globals, void *tileData, VRect &tileRect, int32 rowBytes, OCIO::ConstCPUProcessorRcPtr processor)
 {
 
     const uint32 rectHeight = tileRect.bottom - tileRect.top;
@@ -634,7 +634,7 @@ static void DoStart(GPtr globals)
         {
             OpenColorIO_PS_Context context(path);
             
-            OCIO::ConstProcessorRcPtr processor;
+            OCIO::ConstCPUProcessorRcPtr processor;
             
             if( context.isLUT() )
             {

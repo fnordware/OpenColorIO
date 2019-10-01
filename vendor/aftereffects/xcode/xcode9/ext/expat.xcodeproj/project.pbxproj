@@ -234,7 +234,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd $SRCROOT/../../../../../ext\n\nif [ ! -d expat ]\nthen\n\tgit clone https://github.com/libexpat/libexpat -b R_2_2_9\n    mv libexpat/expat/lib libexpat/expat/expat\nfi\n";
+			shellScript = "cd $SRCROOT/../../../../../ext\n\nif [ ! -d libexpat ]\nthen\n\tgit clone https://github.com/libexpat/libexpat -b R_2_2_9\n    mv libexpat/expat/lib libexpat/expat/expat\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

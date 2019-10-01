@@ -100,7 +100,7 @@ OpenColorIO_PS_Context::OpenColorIO_PS_Context(const std::string &path) :
     }
 }
 
-OCIO::ConstProcessorRcPtr
+OCIO::ConstCPUProcessorRcPtr
 OpenColorIO_PS_Context::getConvertProcessor(const std::string &inputSpace, const std::string &outputSpace) const
 {
     assert( !isLUT() );
@@ -112,12 +112,14 @@ OpenColorIO_PS_Context::getConvertProcessor(const std::string &inputSpace, const
     transform->setDirection(OCIO::TRANSFORM_DIR_FORWARD);
     
     OCIO::ConstProcessorRcPtr processor = _config->getProcessor(transform);
+	
+    OCIO::ConstCPUProcessorRcPtr cpu_processor = processor->getDefaultCPUProcessor();
     
-    return processor;
+    return cpu_processor;
 }
 
 
-OCIO::ConstProcessorRcPtr
+OCIO::ConstCPUProcessorRcPtr
 OpenColorIO_PS_Context::getDisplayProcessor(const std::string &inputSpace, const std::string &device, const std::string &transform) const
 {
     assert( !isLUT() );
@@ -130,11 +132,13 @@ OpenColorIO_PS_Context::getDisplayProcessor(const std::string &inputSpace, const
 
     OCIO::ConstProcessorRcPtr processor = _config->getProcessor(ocio_transform);
     
-    return processor;
+    OCIO::ConstCPUProcessorRcPtr cpu_processor = processor->getDefaultCPUProcessor();
+	
+    return cpu_processor;
 }
 
 
-OCIO::ConstProcessorRcPtr
+OCIO::ConstCPUProcessorRcPtr
 OpenColorIO_PS_Context::getLUTProcessor(OCIO::Interpolation interpolation, OCIO::TransformDirection direction) const
 {
     assert( isLUT() );
@@ -147,7 +151,9 @@ OpenColorIO_PS_Context::getLUTProcessor(OCIO::Interpolation interpolation, OCIO:
     
     OCIO::ConstProcessorRcPtr processor = _config->getProcessor(transform);
     
-    return processor;
+    OCIO::ConstCPUProcessorRcPtr cpu_processor = processor->getDefaultCPUProcessor();
+	
+    return cpu_processor;
 }
 
 

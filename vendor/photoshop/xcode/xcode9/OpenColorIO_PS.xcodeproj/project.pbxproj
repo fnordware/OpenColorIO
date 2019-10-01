@@ -26,6 +26,7 @@
 		2AD7E1A722807A0600592291 /* liblcms.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AD7E16F2280753E00592291 /* liblcms.a */; };
 		2AD7E1A822807A0600592291 /* libOpenColorIO.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AD7E15D2280752600592291 /* libOpenColorIO.a */; };
 		2AD7E1A922807A0600592291 /* libyaml.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AD7E1752280753E00592291 /* libyaml.a */; };
+		2AEABA96234414D90053BCB6 /* libpystring.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AEABA93234414C20053BCB6 /* libpystring.a */; };
 		643D6E0F09F92FFB0066B855 /* DialogUtilitiesMac.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 643D6E0E09F92FFB0066B855 /* DialogUtilitiesMac.cpp */; };
 		643D6E1809F9305D0066B855 /* FilterBigDocument.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 643D6E1509F9305C0066B855 /* FilterBigDocument.cpp */; };
 		643D6E1909F9305D0066B855 /* PIUSuites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 643D6E1609F9305C0066B855 /* PIUSuites.cpp */; };
@@ -106,6 +107,34 @@
 			remoteGlobalIDString = 2ACF559B1477692300991ED5;
 			remoteInfo = yaml;
 		};
+		2AEABA8A234413330053BCB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2AD7E15E2280753E00592291 /* ilmbasehalf.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2AEAB9BD233EE7380053BCB6;
+			remoteInfo = eLut;
+		};
+		2AEABA8C234413330053BCB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2AD7E15E2280753E00592291 /* ilmbasehalf.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2AEAB9CE233EE8150053BCB6;
+			remoteInfo = toFloat;
+		};
+		2AEABA92234414C20053BCB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2AEABA8E234414C20053BCB6 /* pystring.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2AEABA0E23424ED50053BCB6;
+			remoteInfo = pystring;
+		};
+		2AEABA94234414CF0053BCB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2AEABA8E234414C20053BCB6 /* pystring.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 2AEABA0D23424ED50053BCB6;
+			remoteInfo = pystring;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -139,6 +168,7 @@
 		2AD7E1952280785000592291 /* OpenColorIO_AE_MonitorProfileChooser_Controller.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OpenColorIO_AE_MonitorProfileChooser_Controller.h; path = ../../../aftereffects/mac/OpenColorIO_AE_MonitorProfileChooser_Controller.h; sourceTree = "<group>"; };
 		2AD7E1962280785100592291 /* OpenColorIO_AE_MonitorProfileChooser_Controller.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = OpenColorIO_AE_MonitorProfileChooser_Controller.m; path = ../../../aftereffects/mac/OpenColorIO_AE_MonitorProfileChooser_Controller.m; sourceTree = "<group>"; };
 		2AD7E1972280785100592291 /* OpenColorIO_AE_MonitorProfileChooser.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = OpenColorIO_AE_MonitorProfileChooser.xib; path = ../../../aftereffects/mac/OpenColorIO_AE_MonitorProfileChooser.xib; sourceTree = "<group>"; };
+		2AEABA8E234414C20053BCB6 /* pystring.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = pystring.xcodeproj; path = ../../../aftereffects/xcode/xcode9/ext/pystring.xcodeproj; sourceTree = "<group>"; };
 		6427BDE609F92A0300223601 /* PIUtilities.r */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.rez; path = PIUtilities.r; sourceTree = "<group>"; };
 		6427BE8909F92A2C00223601 /* ASPreInclude.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = ASPreInclude.h; sourceTree = "<group>"; };
 		6427BE8A09F92A2C00223601 /* PIAbout.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = PIAbout.h; sourceTree = "<group>"; };
@@ -223,6 +253,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2AEABA96234414D90053BCB6 /* libpystring.a in Frameworks */,
 				2AD7E1A522807A0600592291 /* libexpat.a in Frameworks */,
 				2AD7E1A622807A0600592291 /* libilmbasehalf.a in Frameworks */,
 				2AD7E1A722807A0600592291 /* liblcms.a in Frameworks */,
@@ -266,6 +297,7 @@
 				2AD7E15E2280753E00592291 /* ilmbasehalf.xcodeproj */,
 				2AD7E16A2280753E00592291 /* lcms.xcodeproj */,
 				2AD7E1702280753E00592291 /* yaml.xcodeproj */,
+				2AEABA8E234414C20053BCB6 /* pystring.xcodeproj */,
 				6427BDBD09F92A0300223601 /* SDK common */,
 				6427BE2F09F92A2B00223601 /* Photoshop common */,
 				19C28FB4FE9D528D11CA2CBB /* Products */,
@@ -304,6 +336,8 @@
 			isa = PBXGroup;
 			children = (
 				2AD7E1632280753E00592291 /* libilmbasehalf.a */,
+				2AEABA8B234413330053BCB6 /* eLut */,
+				2AEABA8D234413330053BCB6 /* toFloat */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -328,6 +362,14 @@
 			isa = PBXGroup;
 			children = (
 				2AD7E1752280753E00592291 /* libyaml.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2AEABA8F234414C20053BCB6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2AEABA93234414C20053BCB6 /* libpystring.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -488,6 +530,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				2AEABA95234414CF0053BCB6 /* PBXTargetDependency */,
 				2AD7E19E228079FE00592291 /* PBXTargetDependency */,
 				2AD7E1A0228079FE00592291 /* PBXTargetDependency */,
 				2AD7E1A2228079FE00592291 /* PBXTargetDependency */,
@@ -539,6 +582,10 @@
 					ProjectRef = 2AD7E1582280752600592291 /* OpenColorIO.xcodeproj */;
 				},
 				{
+					ProductGroup = 2AEABA8F234414C20053BCB6 /* Products */;
+					ProjectRef = 2AEABA8E234414C20053BCB6 /* pystring.xcodeproj */;
+				},
+				{
 					ProductGroup = 2AD7E1712280753E00592291 /* Products */;
 					ProjectRef = 2AD7E1702280753E00592291 /* yaml.xcodeproj */;
 				},
@@ -584,6 +631,27 @@
 			fileType = archive.ar;
 			path = libyaml.a;
 			remoteRef = 2AD7E1742280753E00592291 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2AEABA8B234413330053BCB6 /* eLut */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = eLut;
+			remoteRef = 2AEABA8A234413330053BCB6 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2AEABA8D234413330053BCB6 /* toFloat */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = toFloat;
+			remoteRef = 2AEABA8C234413330053BCB6 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2AEABA93234414C20053BCB6 /* libpystring.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libpystring.a;
+			remoteRef = 2AEABA92234414C20053BCB6 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -662,6 +730,11 @@
 			name = yaml;
 			targetProxy = 2AD7E1A3228079FE00592291 /* PBXContainerItemProxy */;
 		};
+		2AEABA95234414CF0053BCB6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = pystring;
+			targetProxy = 2AEABA94234414CF0053BCB6 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -669,6 +742,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
@@ -685,7 +759,7 @@
 					../../../aftereffects/xcode/xcode9,
 					../../../../include,
 					"../../../../ext/yaml-cpp/include",
-					"../../../../ext/lcms2-2.1/include",
+					"../../../../ext/Little-CMS/include",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR = YES;
@@ -724,6 +798,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
@@ -737,7 +812,7 @@
 					../../../aftereffects/xcode/xcode9,
 					../../../../include,
 					"../../../../ext/yaml-cpp/include",
-					"../../../../ext/lcms2-2.1/include",
+					"../../../../ext/Little-CMS/include",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				SDKROOT = macosx;
