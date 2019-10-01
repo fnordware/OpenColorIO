@@ -14,7 +14,6 @@
 		2AB82E00227FD69800CF8E58 /* iasciitab.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AB82DA6227FD69700CF8E58 /* iasciitab.h */; };
 		2AB82E01227FD69800CF8E58 /* internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AB82DA7227FD69700CF8E58 /* internal.h */; };
 		2AB82E02227FD69800CF8E58 /* latin1tab.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AB82DA8227FD69700CF8E58 /* latin1tab.h */; };
-		2AB82E03227FD69800CF8E58 /* loadlibrary.c in Sources */ = {isa = PBXBuildFile; fileRef = 2AB82DAB227FD69700CF8E58 /* loadlibrary.c */; };
 		2AB82E04227FD69800CF8E58 /* nametab.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AB82DAD227FD69700CF8E58 /* nametab.h */; };
 		2AB82E05227FD69800CF8E58 /* siphash.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AB82DAE227FD69700CF8E58 /* siphash.h */; };
 		2AB82E06227FD69800CF8E58 /* utf8tab.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AB82DAF227FD69700CF8E58 /* utf8tab.h */; };
@@ -30,26 +29,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		2AB82D99227FD69700CF8E58 /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		2AB82D9A227FD69700CF8E58 /* ascii.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ascii.h; sourceTree = "<group>"; };
 		2AB82D9B227FD69700CF8E58 /* asciitab.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = asciitab.h; sourceTree = "<group>"; };
 		2AB82D9C227FD69700CF8E58 /* expat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = expat.h; sourceTree = "<group>"; };
-		2AB82D9D227FD69700CF8E58 /* expat.vcxproj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = expat.vcxproj; sourceTree = "<group>"; };
-		2AB82D9E227FD69700CF8E58 /* expat.vcxproj.filters */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = expat.vcxproj.filters; sourceTree = "<group>"; };
 		2AB82D9F227FD69700CF8E58 /* expat_external.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = expat_external.h; sourceTree = "<group>"; };
-		2AB82DA0227FD69700CF8E58 /* expat_static.vcxproj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = expat_static.vcxproj; sourceTree = "<group>"; };
-		2AB82DA1227FD69700CF8E58 /* expat_static.vcxproj.filters */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = expat_static.vcxproj.filters; sourceTree = "<group>"; };
-		2AB82DA2227FD69700CF8E58 /* expatw.vcxproj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = expatw.vcxproj; sourceTree = "<group>"; };
-		2AB82DA3227FD69700CF8E58 /* expatw.vcxproj.filters */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = expatw.vcxproj.filters; sourceTree = "<group>"; };
-		2AB82DA4227FD69700CF8E58 /* expatw_static.vcxproj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = expatw_static.vcxproj; sourceTree = "<group>"; };
-		2AB82DA5227FD69700CF8E58 /* expatw_static.vcxproj.filters */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = expatw_static.vcxproj.filters; sourceTree = "<group>"; };
 		2AB82DA6227FD69700CF8E58 /* iasciitab.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = iasciitab.h; sourceTree = "<group>"; };
 		2AB82DA7227FD69700CF8E58 /* internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = internal.h; sourceTree = "<group>"; };
 		2AB82DA8227FD69700CF8E58 /* latin1tab.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = latin1tab.h; sourceTree = "<group>"; };
-		2AB82DA9227FD69700CF8E58 /* libexpat.def */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = libexpat.def; sourceTree = "<group>"; };
-		2AB82DAA227FD69700CF8E58 /* libexpatw.def */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = libexpatw.def; sourceTree = "<group>"; };
-		2AB82DAB227FD69700CF8E58 /* loadlibrary.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = loadlibrary.c; sourceTree = "<group>"; };
-		2AB82DAC227FD69700CF8E58 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		2AB82DAD227FD69700CF8E58 /* nametab.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nametab.h; sourceTree = "<group>"; };
 		2AB82DAE227FD69700CF8E58 /* siphash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = siphash.h; sourceTree = "<group>"; };
 		2AB82DAF227FD69700CF8E58 /* utf8tab.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utf8tab.h; sourceTree = "<group>"; };
@@ -74,9 +60,7 @@
 		2AB82DF2227FD69700CF8E58 /* xmlmime.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xmlmime.c; sourceTree = "<group>"; };
 		2AB82DF3227FD69700CF8E58 /* xmlmime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xmlmime.h; sourceTree = "<group>"; };
 		2AB82DF4227FD69700CF8E58 /* xmltchar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xmltchar.h; sourceTree = "<group>"; };
-		2AB82DF5227FD69700CF8E58 /* xmlurl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xmlurl.h; sourceTree = "<group>"; };
 		2AB82DF6227FD69700CF8E58 /* xmlwf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xmlwf.c; sourceTree = "<group>"; };
-		2AB82DF9227FD69700CF8E58 /* xmlwin32url.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = xmlwin32url.cxx; sourceTree = "<group>"; };
 		2ACF559C1477692300991ED5 /* libexpat.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libexpat.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -115,32 +99,19 @@
 				2AB82DE6227FD69700CF8E58 /* xmlwf */,
 			);
 			name = expat;
-			path = ../../../../../ext/expat;
+			path = ../../../../../ext/libexpat/expat;
 			sourceTree = "<group>";
 		};
 		2AB82D98227FD69700CF8E58 /* expat */ = {
 			isa = PBXGroup;
 			children = (
-				2AB82D99227FD69700CF8E58 /* .gitignore */,
 				2AB82D9A227FD69700CF8E58 /* ascii.h */,
 				2AB82D9B227FD69700CF8E58 /* asciitab.h */,
 				2AB82D9C227FD69700CF8E58 /* expat.h */,
-				2AB82D9D227FD69700CF8E58 /* expat.vcxproj */,
-				2AB82D9E227FD69700CF8E58 /* expat.vcxproj.filters */,
 				2AB82D9F227FD69700CF8E58 /* expat_external.h */,
-				2AB82DA0227FD69700CF8E58 /* expat_static.vcxproj */,
-				2AB82DA1227FD69700CF8E58 /* expat_static.vcxproj.filters */,
-				2AB82DA2227FD69700CF8E58 /* expatw.vcxproj */,
-				2AB82DA3227FD69700CF8E58 /* expatw.vcxproj.filters */,
-				2AB82DA4227FD69700CF8E58 /* expatw_static.vcxproj */,
-				2AB82DA5227FD69700CF8E58 /* expatw_static.vcxproj.filters */,
 				2AB82DA6227FD69700CF8E58 /* iasciitab.h */,
 				2AB82DA7227FD69700CF8E58 /* internal.h */,
 				2AB82DA8227FD69700CF8E58 /* latin1tab.h */,
-				2AB82DA9227FD69700CF8E58 /* libexpat.def */,
-				2AB82DAA227FD69700CF8E58 /* libexpatw.def */,
-				2AB82DAB227FD69700CF8E58 /* loadlibrary.c */,
-				2AB82DAC227FD69700CF8E58 /* Makefile.am */,
 				2AB82DAD227FD69700CF8E58 /* nametab.h */,
 				2AB82DAE227FD69700CF8E58 /* siphash.h */,
 				2AB82DAF227FD69700CF8E58 /* utf8tab.h */,
@@ -172,9 +143,7 @@
 				2AB82DF2227FD69700CF8E58 /* xmlmime.c */,
 				2AB82DF3227FD69700CF8E58 /* xmlmime.h */,
 				2AB82DF4227FD69700CF8E58 /* xmltchar.h */,
-				2AB82DF5227FD69700CF8E58 /* xmlurl.h */,
 				2AB82DF6227FD69700CF8E58 /* xmlwf.c */,
-				2AB82DF9227FD69700CF8E58 /* xmlwin32url.cxx */,
 			);
 			path = xmlwf;
 			sourceTree = "<group>";
@@ -210,7 +179,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2ACF559F1477692B00991ED5 /* Build configuration list for PBXNativeTarget "expat" */;
 			buildPhases = (
-				2AF56976147991F700F9968C /* Unpack expat */,
+				2AF56976147991F700F9968C /* Download expat */,
 				2ACF55981477692300991ED5 /* Headers */,
 				2ACF55991477692300991ED5 /* Sources */,
 				2ACF559A1477692300991ED5 /* Frameworks */,
@@ -252,22 +221,20 @@
 /* End PBXProject section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		2AF56976147991F700F9968C /* Unpack expat */ = {
+		2AF56976147991F700F9968C /* Download expat */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/../../../../../ext/expat_2_2_5.tar.gz",
-				"$(SRCROOT)/../../../../../ext/expat_2_2_5.patch",
 			);
-			name = "Unpack expat";
+			name = "Download expat";
 			outputPaths = (
-				"$(SRCROOT)/../../../../../ext/expat",
+				"$(SRCROOT)/../../../../../ext/libexpat",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd $SRCROOT/../../../../../ext\n\nif [ ! -d expat ]\nthen\n\ttar -xzf expat_2_2_5.tar.gz\n\tpatch -p0 < expat_2_2_5.patch\n    mv expat/lib expat/expat\nfi\n";
+			shellScript = "cd $SRCROOT/../../../../../ext\n\nif [ ! -d expat ]\nthen\n\tgit clone https://github.com/libexpat/libexpat -b R_2_2_9\n    mv libexpat/expat/lib libexpat/expat/expat\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -278,7 +245,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				2AB82E0B227FD69800CF8E58 /* xmltok.c in Sources */,
-				2AB82E03227FD69800CF8E58 /* loadlibrary.c in Sources */,
 				2AB82E0D227FD69800CF8E58 /* xmltok_impl.c in Sources */,
 				2AB82E0F227FD69800CF8E58 /* xmltok_ns.c in Sources */,
 				2AB82E09227FD69800CF8E58 /* xmlrole.c in Sources */,

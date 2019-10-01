@@ -139,8 +139,6 @@
 		2A981F7C227F9FF10060FDD2 /* MatrixOpData.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981EBA227F9FF00060FDD2 /* MatrixOpData.h */; };
 		2A981F7D227F9FF10060FDD2 /* MatrixOps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EBB227F9FF00060FDD2 /* MatrixOps.cpp */; };
 		2A981F7E227F9FF10060FDD2 /* MatrixOps.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981EBC227F9FF00060FDD2 /* MatrixOps.h */; };
-		2A981F7F227F9FF10060FDD2 /* Metadata.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EBD227F9FF00060FDD2 /* Metadata.cpp */; };
-		2A981F80227F9FF10060FDD2 /* Metadata.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981EBE227F9FF00060FDD2 /* Metadata.h */; };
 		2A981F81227F9FF10060FDD2 /* NoOps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EC0227F9FF00060FDD2 /* NoOps.cpp */; };
 		2A981F82227F9FF10060FDD2 /* NoOps.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981EC1227F9FF00060FDD2 /* NoOps.h */; };
 		2A981F83227F9FF10060FDD2 /* OpArray.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981EC2227F9FF00060FDD2 /* OpArray.h */; };
@@ -154,8 +152,6 @@
 		2A981F8B227F9FF10060FDD2 /* RangeOps.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981ECB227F9FF00060FDD2 /* RangeOps.h */; };
 		2A981F8C227F9FF10060FDD2 /* ReferenceOpData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981ECD227F9FF00060FDD2 /* ReferenceOpData.cpp */; };
 		2A981F8D227F9FF10060FDD2 /* ReferenceOpData.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981ECE227F9FF00060FDD2 /* ReferenceOpData.h */; };
-		2A981F8E227F9FF10060FDD2 /* TruelightOp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981ED0227F9FF00060FDD2 /* TruelightOp.cpp */; };
-		2A981F8F227F9FF10060FDD2 /* TruelightOp.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981ED1227F9FF00060FDD2 /* TruelightOp.h */; };
 		2A981F90227F9FF10060FDD2 /* OpTools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981ED2227F9FF00060FDD2 /* OpTools.cpp */; };
 		2A981F91227F9FF10060FDD2 /* OpTools.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981ED3227F9FF00060FDD2 /* OpTools.h */; };
 		2A981F92227F9FF10060FDD2 /* ParseUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981ED4227F9FF00060FDD2 /* ParseUtils.cpp */; };
@@ -188,15 +184,29 @@
 		2A981FAD227F9FF10060FDD2 /* LookTransform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EF4227F9FF00060FDD2 /* LookTransform.cpp */; };
 		2A981FAE227F9FF10060FDD2 /* MatrixTransform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EF5227F9FF00060FDD2 /* MatrixTransform.cpp */; };
 		2A981FAF227F9FF10060FDD2 /* RangeTransform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EF6227F9FF00060FDD2 /* RangeTransform.cpp */; };
-		2A981FB0227F9FF10060FDD2 /* TruelightTransform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EF7227F9FF00060FDD2 /* TruelightTransform.cpp */; };
-		2A981FB1227F9FF10060FDD2 /* UnitTest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EF8227F9FF00060FDD2 /* UnitTest.cpp */; };
-		2A981FB2227F9FF10060FDD2 /* UnitTestUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A981EF9227F9FF00060FDD2 /* UnitTestUtils.cpp */; };
-		2A981FB3227F9FF10060FDD2 /* UnitTestUtils.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A981EFA227F9FF00060FDD2 /* UnitTestUtils.h */; };
 		2A9820D1227FAEB20060FDD2 /* glsl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A9820CB227FAEB20060FDD2 /* glsl.cpp */; };
 		2A9820D2227FAEB20060FDD2 /* glsl.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A9820CC227FAEB20060FDD2 /* glsl.h */; };
-		2A9820D3227FAEB20060FDD2 /* pystring.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2A9820CF227FAEB20060FDD2 /* pystring.cpp */; };
-		2A9820D4227FAEB20060FDD2 /* pystring.h in Headers */ = {isa = PBXBuildFile; fileRef = 2A9820D0227FAEB20060FDD2 /* pystring.h */; };
 		2ACF573F14776B7000991ED5 /* OpenColorABI.h in Headers */ = {isa = PBXBuildFile; fileRef = 2ACF573E14776B7000991ED5 /* OpenColorABI.h */; };
+		2AEAB9E523424D0B0053BCB6 /* DynamicProperty.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB9E023424D090053BCB6 /* DynamicProperty.cpp */; };
+		2AEAB9E623424D0B0053BCB6 /* DynamicProperty.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEAB9E123424D0A0053BCB6 /* DynamicProperty.h */; };
+		2AEAB9E723424D0B0053BCB6 /* GPUProcessor.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEAB9E223424D0A0053BCB6 /* GPUProcessor.h */; };
+		2AEAB9E823424D0B0053BCB6 /* TransformBuilder.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEAB9E323424D0A0053BCB6 /* TransformBuilder.h */; };
+		2AEAB9E923424D0B0053BCB6 /* GPUProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB9E423424D0B0053BCB6 /* GPUProcessor.cpp */; };
+		2AEAB9EC23424D160053BCB6 /* FormatMetadata.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEAB9EA23424D160053BCB6 /* FormatMetadata.h */; };
+		2AEAB9ED23424D160053BCB6 /* FormatMetadata.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB9EB23424D160053BCB6 /* FormatMetadata.cpp */; };
+		2AEAB9F723424D780053BCB6 /* ExposureContrastOpCPU.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB9EF23424D770053BCB6 /* ExposureContrastOpCPU.cpp */; };
+		2AEAB9F823424D780053BCB6 /* ExposureContrastOpCPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEAB9F023424D770053BCB6 /* ExposureContrastOpCPU.h */; };
+		2AEAB9F923424D780053BCB6 /* ExposureContrastOpData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB9F123424D770053BCB6 /* ExposureContrastOpData.cpp */; };
+		2AEAB9FA23424D780053BCB6 /* ExposureContrastOpData.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEAB9F223424D770053BCB6 /* ExposureContrastOpData.h */; };
+		2AEAB9FB23424D780053BCB6 /* ExposureContrastOpGPU.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB9F323424D770053BCB6 /* ExposureContrastOpGPU.cpp */; };
+		2AEAB9FC23424D780053BCB6 /* ExposureContrastOpGPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEAB9F423424D770053BCB6 /* ExposureContrastOpGPU.h */; };
+		2AEAB9FD23424D780053BCB6 /* ExposureContrastOps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB9F523424D770053BCB6 /* ExposureContrastOps.cpp */; };
+		2AEAB9FE23424D780053BCB6 /* ExposureContrastOps.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEAB9F623424D780053BCB6 /* ExposureContrastOps.h */; };
+		2AEABA0223424DC50053BCB6 /* LUT3DTransform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB9FF23424DC40053BCB6 /* LUT3DTransform.cpp */; };
+		2AEABA0323424DC50053BCB6 /* ExposureContrastTransform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEABA0023424DC50053BCB6 /* ExposureContrastTransform.cpp */; };
+		2AEABA0423424DC50053BCB6 /* LUT1DTransform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEABA0123424DC50053BCB6 /* LUT1DTransform.cpp */; };
+		2AEABA6F234259160053BCB6 /* XMLWriterUtils.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AEABA6D234259150053BCB6 /* XMLWriterUtils.h */; };
+		2AEABA70234259160053BCB6 /* XMLWriterUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AEABA6E234259160053BCB6 /* XMLWriterUtils.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -332,8 +342,6 @@
 		2A981EBA227F9FF00060FDD2 /* MatrixOpData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MatrixOpData.h; sourceTree = "<group>"; };
 		2A981EBB227F9FF00060FDD2 /* MatrixOps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MatrixOps.cpp; sourceTree = "<group>"; };
 		2A981EBC227F9FF00060FDD2 /* MatrixOps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MatrixOps.h; sourceTree = "<group>"; };
-		2A981EBD227F9FF00060FDD2 /* Metadata.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Metadata.cpp; sourceTree = "<group>"; };
-		2A981EBE227F9FF00060FDD2 /* Metadata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Metadata.h; sourceTree = "<group>"; };
 		2A981EC0227F9FF00060FDD2 /* NoOps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NoOps.cpp; sourceTree = "<group>"; };
 		2A981EC1227F9FF00060FDD2 /* NoOps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NoOps.h; sourceTree = "<group>"; };
 		2A981EC2227F9FF00060FDD2 /* OpArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OpArray.h; sourceTree = "<group>"; };
@@ -347,8 +355,6 @@
 		2A981ECB227F9FF00060FDD2 /* RangeOps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RangeOps.h; sourceTree = "<group>"; };
 		2A981ECD227F9FF00060FDD2 /* ReferenceOpData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ReferenceOpData.cpp; sourceTree = "<group>"; };
 		2A981ECE227F9FF00060FDD2 /* ReferenceOpData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReferenceOpData.h; sourceTree = "<group>"; };
-		2A981ED0227F9FF00060FDD2 /* TruelightOp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TruelightOp.cpp; sourceTree = "<group>"; };
-		2A981ED1227F9FF00060FDD2 /* TruelightOp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TruelightOp.h; sourceTree = "<group>"; };
 		2A981ED2227F9FF00060FDD2 /* OpTools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OpTools.cpp; sourceTree = "<group>"; };
 		2A981ED3227F9FF00060FDD2 /* OpTools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OpTools.h; sourceTree = "<group>"; };
 		2A981ED4227F9FF00060FDD2 /* ParseUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ParseUtils.cpp; sourceTree = "<group>"; };
@@ -381,16 +387,30 @@
 		2A981EF4227F9FF00060FDD2 /* LookTransform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LookTransform.cpp; sourceTree = "<group>"; };
 		2A981EF5227F9FF00060FDD2 /* MatrixTransform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MatrixTransform.cpp; sourceTree = "<group>"; };
 		2A981EF6227F9FF00060FDD2 /* RangeTransform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RangeTransform.cpp; sourceTree = "<group>"; };
-		2A981EF7227F9FF00060FDD2 /* TruelightTransform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TruelightTransform.cpp; sourceTree = "<group>"; };
-		2A981EF8227F9FF00060FDD2 /* UnitTest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UnitTest.cpp; sourceTree = "<group>"; };
-		2A981EF9227F9FF00060FDD2 /* UnitTestUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UnitTestUtils.cpp; sourceTree = "<group>"; };
-		2A981EFA227F9FF00060FDD2 /* UnitTestUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UnitTestUtils.h; sourceTree = "<group>"; };
 		2A9820CB227FAEB20060FDD2 /* glsl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = glsl.cpp; sourceTree = "<group>"; };
 		2A9820CC227FAEB20060FDD2 /* glsl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glsl.h; sourceTree = "<group>"; };
-		2A9820CF227FAEB20060FDD2 /* pystring.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pystring.cpp; sourceTree = "<group>"; };
-		2A9820D0227FAEB20060FDD2 /* pystring.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pystring.h; sourceTree = "<group>"; };
 		2ACF567114776A0A00991ED5 /* libOpenColorIO.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libOpenColorIO.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		2ACF573E14776B7000991ED5 /* OpenColorABI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OpenColorABI.h; sourceTree = "<group>"; };
+		2AEAB9E023424D090053BCB6 /* DynamicProperty.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DynamicProperty.cpp; sourceTree = "<group>"; };
+		2AEAB9E123424D0A0053BCB6 /* DynamicProperty.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DynamicProperty.h; sourceTree = "<group>"; };
+		2AEAB9E223424D0A0053BCB6 /* GPUProcessor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUProcessor.h; sourceTree = "<group>"; };
+		2AEAB9E323424D0A0053BCB6 /* TransformBuilder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TransformBuilder.h; sourceTree = "<group>"; };
+		2AEAB9E423424D0B0053BCB6 /* GPUProcessor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GPUProcessor.cpp; sourceTree = "<group>"; };
+		2AEAB9EA23424D160053BCB6 /* FormatMetadata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FormatMetadata.h; sourceTree = "<group>"; };
+		2AEAB9EB23424D160053BCB6 /* FormatMetadata.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FormatMetadata.cpp; sourceTree = "<group>"; };
+		2AEAB9EF23424D770053BCB6 /* ExposureContrastOpCPU.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ExposureContrastOpCPU.cpp; sourceTree = "<group>"; };
+		2AEAB9F023424D770053BCB6 /* ExposureContrastOpCPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExposureContrastOpCPU.h; sourceTree = "<group>"; };
+		2AEAB9F123424D770053BCB6 /* ExposureContrastOpData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ExposureContrastOpData.cpp; sourceTree = "<group>"; };
+		2AEAB9F223424D770053BCB6 /* ExposureContrastOpData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExposureContrastOpData.h; sourceTree = "<group>"; };
+		2AEAB9F323424D770053BCB6 /* ExposureContrastOpGPU.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ExposureContrastOpGPU.cpp; sourceTree = "<group>"; };
+		2AEAB9F423424D770053BCB6 /* ExposureContrastOpGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExposureContrastOpGPU.h; sourceTree = "<group>"; };
+		2AEAB9F523424D770053BCB6 /* ExposureContrastOps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ExposureContrastOps.cpp; sourceTree = "<group>"; };
+		2AEAB9F623424D780053BCB6 /* ExposureContrastOps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExposureContrastOps.h; sourceTree = "<group>"; };
+		2AEAB9FF23424DC40053BCB6 /* LUT3DTransform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LUT3DTransform.cpp; sourceTree = "<group>"; };
+		2AEABA0023424DC50053BCB6 /* ExposureContrastTransform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ExposureContrastTransform.cpp; sourceTree = "<group>"; };
+		2AEABA0123424DC50053BCB6 /* LUT1DTransform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LUT1DTransform.cpp; sourceTree = "<group>"; };
+		2AEABA6D234259150053BCB6 /* XMLWriterUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XMLWriterUtils.h; sourceTree = "<group>"; };
+		2AEABA6E234259160053BCB6 /* XMLWriterUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = XMLWriterUtils.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -426,6 +446,11 @@
 		2A981E28227F9FF00060FDD2 /* OpenColorIO */ = {
 			isa = PBXGroup;
 			children = (
+				2AEAB9E023424D090053BCB6 /* DynamicProperty.cpp */,
+				2AEAB9E123424D0A0053BCB6 /* DynamicProperty.h */,
+				2AEAB9E423424D0B0053BCB6 /* GPUProcessor.cpp */,
+				2AEAB9E223424D0A0053BCB6 /* GPUProcessor.h */,
+				2AEAB9E323424D0A0053BCB6 /* TransformBuilder.h */,
 				2A981E29227F9FF00060FDD2 /* Baker.cpp */,
 				2A981E2A227F9FF00060FDD2 /* BitDepthUtils.cpp */,
 				2A981E2B227F9FF00060FDD2 /* BitDepthUtils.h */,
@@ -483,9 +508,6 @@
 				2A981EE4227F9FF00060FDD2 /* SSE.h */,
 				2A981EE5227F9FF00060FDD2 /* Transform.cpp */,
 				2A981EE6227F9FF00060FDD2 /* transforms */,
-				2A981EF8227F9FF00060FDD2 /* UnitTest.cpp */,
-				2A981EF9227F9FF00060FDD2 /* UnitTestUtils.cpp */,
-				2A981EFA227F9FF00060FDD2 /* UnitTestUtils.h */,
 			);
 			name = OpenColorIO;
 			path = ../../../../src/OpenColorIO;
@@ -494,6 +516,8 @@
 		2A981E37227F9FF00060FDD2 /* fileformats */ = {
 			isa = PBXGroup;
 			children = (
+				2AEAB9EB23424D160053BCB6 /* FormatMetadata.cpp */,
+				2AEAB9EA23424D160053BCB6 /* FormatMetadata.h */,
 				2A981E38227F9FF00060FDD2 /* cdl */,
 				2A981E3D227F9FF00060FDD2 /* ctf */,
 				2A981E44227F9FF00060FDD2 /* FileFormat3DL.cpp */,
@@ -547,6 +571,8 @@
 		2A981E57227F9FF00060FDD2 /* xmlutils */ = {
 			isa = PBXGroup;
 			children = (
+				2AEABA6E234259160053BCB6 /* XMLWriterUtils.cpp */,
+				2AEABA6D234259150053BCB6 /* XMLWriterUtils.h */,
 				2A981E58227F9FF00060FDD2 /* XMLReaderHelper.cpp */,
 				2A981E59227F9FF00060FDD2 /* XMLReaderHelper.h */,
 				2A981E5A227F9FF00060FDD2 /* XMLReaderUtils.cpp */,
@@ -570,6 +596,7 @@
 				2A981E78227F9FF00060FDD2 /* Allocation */,
 				2A981E7B227F9FF00060FDD2 /* CDL */,
 				2A981E82227F9FF00060FDD2 /* Exponent */,
+				2AEAB9EE23424D770053BCB6 /* exposurecontrast */,
 				2A981E85227F9FF00060FDD2 /* FixedFunction */,
 				2A981E8E227F9FF00060FDD2 /* Gamma */,
 				2A981E97227F9FF00060FDD2 /* IndexMapping.cpp */,
@@ -578,13 +605,10 @@
 				2A981EA4227F9FF00060FDD2 /* Lut1D */,
 				2A981EAD227F9FF00060FDD2 /* Lut3D */,
 				2A981EB6227F9FF00060FDD2 /* Matrix */,
-				2A981EBD227F9FF00060FDD2 /* Metadata.cpp */,
-				2A981EBE227F9FF00060FDD2 /* Metadata.h */,
 				2A981EBF227F9FF00060FDD2 /* NoOp */,
 				2A981EC2227F9FF00060FDD2 /* OpArray.h */,
 				2A981EC3227F9FF00060FDD2 /* Range */,
 				2A981ECC227F9FF00060FDD2 /* reference */,
-				2A981ECF227F9FF00060FDD2 /* Truelight */,
 			);
 			path = ops;
 			sourceTree = "<group>";
@@ -743,18 +767,12 @@
 			path = reference;
 			sourceTree = "<group>";
 		};
-		2A981ECF227F9FF00060FDD2 /* Truelight */ = {
-			isa = PBXGroup;
-			children = (
-				2A981ED0227F9FF00060FDD2 /* TruelightOp.cpp */,
-				2A981ED1227F9FF00060FDD2 /* TruelightOp.h */,
-			);
-			path = Truelight;
-			sourceTree = "<group>";
-		};
 		2A981EE6227F9FF00060FDD2 /* transforms */ = {
 			isa = PBXGroup;
 			children = (
+				2AEABA0023424DC50053BCB6 /* ExposureContrastTransform.cpp */,
+				2AEABA0123424DC50053BCB6 /* LUT1DTransform.cpp */,
+				2AEAB9FF23424DC40053BCB6 /* LUT3DTransform.cpp */,
 				2A981EE7227F9FF00060FDD2 /* AllocationTransform.cpp */,
 				2A981EE8227F9FF00060FDD2 /* CDLTransform.cpp */,
 				2A981EE9227F9FF00060FDD2 /* CDLTransform.h */,
@@ -771,7 +789,6 @@
 				2A981EF4227F9FF00060FDD2 /* LookTransform.cpp */,
 				2A981EF5227F9FF00060FDD2 /* MatrixTransform.cpp */,
 				2A981EF6227F9FF00060FDD2 /* RangeTransform.cpp */,
-				2A981EF7227F9FF00060FDD2 /* TruelightTransform.cpp */,
 			);
 			path = transforms;
 			sourceTree = "<group>";
@@ -780,7 +797,6 @@
 			isa = PBXGroup;
 			children = (
 				2A9820C9227FAEB20060FDD2 /* oglbuilder */,
-				2A9820CD227FAEB20060FDD2 /* pystring */,
 			);
 			name = utils;
 			path = ../../../../src/utils;
@@ -795,13 +811,19 @@
 			path = oglbuilder;
 			sourceTree = "<group>";
 		};
-		2A9820CD227FAEB20060FDD2 /* pystring */ = {
+		2AEAB9EE23424D770053BCB6 /* exposurecontrast */ = {
 			isa = PBXGroup;
 			children = (
-				2A9820CF227FAEB20060FDD2 /* pystring.cpp */,
-				2A9820D0227FAEB20060FDD2 /* pystring.h */,
+				2AEAB9EF23424D770053BCB6 /* ExposureContrastOpCPU.cpp */,
+				2AEAB9F023424D770053BCB6 /* ExposureContrastOpCPU.h */,
+				2AEAB9F123424D770053BCB6 /* ExposureContrastOpData.cpp */,
+				2AEAB9F223424D770053BCB6 /* ExposureContrastOpData.h */,
+				2AEAB9F323424D770053BCB6 /* ExposureContrastOpGPU.cpp */,
+				2AEAB9F423424D770053BCB6 /* ExposureContrastOpGPU.h */,
+				2AEAB9F523424D770053BCB6 /* ExposureContrastOps.cpp */,
+				2AEAB9F623424D780053BCB6 /* ExposureContrastOps.h */,
 			);
-			path = pystring;
+			path = exposurecontrast;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -816,7 +838,7 @@
 				2A981EFD227F9FF00060FDD2 /* BitDepthUtils.h in Headers */,
 				2A981F9E227F9FF10060FDD2 /* SSE.h in Headers */,
 				2A981F89227F9FF10060FDD2 /* RangeOpGPU.h in Headers */,
-				2A981FB3227F9FF10060FDD2 /* UnitTestUtils.h in Headers */,
+				2AEAB9FC23424D780053BCB6 /* ExposureContrastOpGPU.h in Headers */,
 				2A981F8B227F9FF10060FDD2 /* RangeOps.h in Headers */,
 				2A981F66227F9FF10060FDD2 /* LogOps.h in Headers */,
 				2A981F2F227F9FF10060FDD2 /* HashUtils.h in Headers */,
@@ -826,14 +848,14 @@
 				2A981F06227F9FF00060FDD2 /* Display.h in Headers */,
 				2A981F7A227F9FF10060FDD2 /* MatrixOpCPU.h in Headers */,
 				2A981F7E227F9FF10060FDD2 /* MatrixOps.h in Headers */,
-				2A981F8F227F9FF10060FDD2 /* TruelightOp.h in Headers */,
 				2A981F82227F9FF10060FDD2 /* NoOps.h in Headers */,
 				2A981F91227F9FF10060FDD2 /* OpTools.h in Headers */,
+				2AEAB9EC23424D160053BCB6 /* FormatMetadata.h in Headers */,
+				2AEAB9E723424D0B0053BCB6 /* GPUProcessor.h in Headers */,
 				2A981F6E227F9FF10060FDD2 /* Lut1DOpData.h in Headers */,
-				2A981F80227F9FF10060FDD2 /* Metadata.h in Headers */,
+				2AEAB9E623424D0B0053BCB6 /* DynamicProperty.h in Headers */,
 				2A981F37227F9FF10060FDD2 /* LookParse.h in Headers */,
 				2A981F2D227F9FF10060FDD2 /* GpuShaderUtils.h in Headers */,
-				2A9820D4227FAEB20060FDD2 /* pystring.h in Headers */,
 				2A981F87227F9FF10060FDD2 /* RangeOpData.h in Headers */,
 				2A981F28227F9FF10060FDD2 /* XMLReaderUtils.h in Headers */,
 				2A9820D2227FAEB20060FDD2 /* glsl.h in Headers */,
@@ -846,6 +868,8 @@
 				2A981F2A227F9FF10060FDD2 /* GpuShader.h in Headers */,
 				2A981F97227F9FF10060FDD2 /* Platform.h in Headers */,
 				2A981F72227F9FF10060FDD2 /* Lut3DOp.h in Headers */,
+				2AEAB9FA23424D780053BCB6 /* ExposureContrastOpData.h in Headers */,
+				2AEAB9FE23424D780053BCB6 /* ExposureContrastOps.h in Headers */,
 				2A981F32227F9FF10060FDD2 /* ImagePacking.h in Headers */,
 				2A981F26227F9FF10060FDD2 /* XMLReaderHelper.h in Headers */,
 				2A981FA2227F9FF10060FDD2 /* CDLTransform.h in Headers */,
@@ -862,10 +886,13 @@
 				2A981F0B227F9FF00060FDD2 /* CDLReaderHelper.h in Headers */,
 				2A981F44227F9FF10060FDD2 /* AllocationOp.h in Headers */,
 				2A981F85227F9FF10060FDD2 /* RangeOpCPU.h in Headers */,
+				2AEABA6F234259160053BCB6 /* XMLWriterUtils.h in Headers */,
 				2A981F04227F9FF00060FDD2 /* CPUProcessor.h in Headers */,
 				2A981F78227F9FF10060FDD2 /* Lut3DOpGPU.h in Headers */,
 				2A981F52227F9FF10060FDD2 /* FixedFunctionOpGPU.h in Headers */,
+				2AEAB9F823424D780053BCB6 /* ExposureContrastOpCPU.h in Headers */,
 				2A981F8D227F9FF10060FDD2 /* ReferenceOpData.h in Headers */,
+				2AEAB9E823424D0B0053BCB6 /* TransformBuilder.h in Headers */,
 				2A981F39227F9FF10060FDD2 /* MathUtils.h in Headers */,
 				2A981F93227F9FF10060FDD2 /* ParseUtils.h in Headers */,
 				2A981F6C227F9FF10060FDD2 /* Lut1DOpCPU.h in Headers */,
@@ -948,9 +975,9 @@
 				2A981F69227F9FF10060FDD2 /* Lut1DOp.cpp in Sources */,
 				2A981F90227F9FF10060FDD2 /* OpTools.cpp in Sources */,
 				2A981EFB227F9FF00060FDD2 /* Baker.cpp in Sources */,
+				2AEABA0323424DC50053BCB6 /* ExposureContrastTransform.cpp in Sources */,
 				2A981F30227F9FF10060FDD2 /* ImageDesc.cpp in Sources */,
 				2A981FA0227F9FF10060FDD2 /* AllocationTransform.cpp in Sources */,
-				2A981FB0227F9FF10060FDD2 /* TruelightTransform.cpp in Sources */,
 				2A981F92227F9FF10060FDD2 /* ParseUtils.cpp in Sources */,
 				2A981F9D227F9FF10060FDD2 /* SSE.cpp in Sources */,
 				2A981F5D227F9FF10060FDD2 /* IndexMapping.cpp in Sources */,
@@ -959,13 +986,14 @@
 				2A981F1C227F9FF00060FDD2 /* FileFormatIridasItx.cpp in Sources */,
 				2A981FAD227F9FF10060FDD2 /* LookTransform.cpp in Sources */,
 				2A981F0A227F9FF00060FDD2 /* CDLReaderHelper.cpp in Sources */,
+				2AEABA70234259160053BCB6 /* XMLWriterUtils.cpp in Sources */,
 				2A981F3F227F9FF10060FDD2 /* Op.cpp in Sources */,
 				2A981F1B227F9FF00060FDD2 /* FileFormatIridasCube.cpp in Sources */,
 				2A981F3A227F9FF10060FDD2 /* md5.cpp in Sources */,
 				2A981F65227F9FF10060FDD2 /* LogOps.cpp in Sources */,
-				2A9820D3227FAEB20060FDD2 /* pystring.cpp in Sources */,
 				2A981F4B227F9FF10060FDD2 /* ExponentOps.cpp in Sources */,
 				2A981F84227F9FF10060FDD2 /* RangeOpCPU.cpp in Sources */,
+				2AEAB9FB23424D780053BCB6 /* ExposureContrastOpGPU.cpp in Sources */,
 				2A981F16227F9FF00060FDD2 /* FileFormatCSP.cpp in Sources */,
 				2A981FAF227F9FF10060FDD2 /* RangeTransform.cpp in Sources */,
 				2A981F73227F9FF10060FDD2 /* Lut3DOpCPU.cpp in Sources */,
@@ -978,11 +1006,11 @@
 				2A981F17227F9FF00060FDD2 /* FileFormatCTF.cpp in Sources */,
 				2A981F18227F9FF00060FDD2 /* FileFormatDiscreet1DL.cpp in Sources */,
 				2A981F25227F9FF10060FDD2 /* XMLReaderHelper.cpp in Sources */,
+				2AEAB9F923424D780053BCB6 /* ExposureContrastOpData.cpp in Sources */,
 				2A981F81227F9FF10060FDD2 /* NoOps.cpp in Sources */,
 				2A981F8C227F9FF10060FDD2 /* ReferenceOpData.cpp in Sources */,
 				2A981F42227F9FF10060FDD2 /* OpOptimizers.cpp in Sources */,
 				2A981F15227F9FF00060FDD2 /* FileFormatCDL.cpp in Sources */,
-				2A981F8E227F9FF10060FDD2 /* TruelightOp.cpp in Sources */,
 				2A981F23227F9FF10060FDD2 /* FileFormatTruelight.cpp in Sources */,
 				2A981F6B227F9FF10060FDD2 /* Lut1DOpCPU.cpp in Sources */,
 				2A981FA7227F9FF10060FDD2 /* FileTransform.cpp in Sources */,
@@ -999,13 +1027,16 @@
 				2A981FAB227F9FF10060FDD2 /* LogAffineTransform.cpp in Sources */,
 				2A981F13227F9FF00060FDD2 /* FileFormatCC.cpp in Sources */,
 				2A981F31227F9FF10060FDD2 /* ImagePacking.cpp in Sources */,
+				2AEAB9F723424D780053BCB6 /* ExposureContrastOpCPU.cpp in Sources */,
 				2A981F36227F9FF10060FDD2 /* LookParse.cpp in Sources */,
 				2A981F5B227F9FF10060FDD2 /* GammaOpUtils.cpp in Sources */,
 				2A981F03227F9FF00060FDD2 /* CPUProcessor.cpp in Sources */,
 				2A981F47227F9FF10060FDD2 /* CDLOpData.cpp in Sources */,
 				2A981FA6227F9FF10060FDD2 /* ExponentWithLinearTransform.cpp in Sources */,
+				2AEABA0223424DC50053BCB6 /* LUT3DTransform.cpp in Sources */,
 				2A981F8A227F9FF10060FDD2 /* RangeOps.cpp in Sources */,
 				2A981F79227F9FF10060FDD2 /* MatrixOpCPU.cpp in Sources */,
+				2AEAB9E523424D0B0053BCB6 /* DynamicProperty.cpp in Sources */,
 				2A981F67227F9FF10060FDD2 /* LogUtils.cpp in Sources */,
 				2A981EFE227F9FF00060FDD2 /* Caching.cpp in Sources */,
 				2A981F07227F9FF00060FDD2 /* Exception.cpp in Sources */,
@@ -1013,21 +1044,20 @@
 				2A981F29227F9FF10060FDD2 /* GpuShader.cpp in Sources */,
 				2A981F22227F9FF10060FDD2 /* FileFormatSpiMtx.cpp in Sources */,
 				2A981F59227F9FF10060FDD2 /* GammaOps.cpp in Sources */,
-				2A981FB2227F9FF10060FDD2 /* UnitTestUtils.cpp in Sources */,
 				2A981EFF227F9FF00060FDD2 /* ColorSpace.cpp in Sources */,
 				2A981F63227F9FF10060FDD2 /* LogOpGPU.cpp in Sources */,
 				2A981F9B227F9FF10060FDD2 /* ScanlineHelper.cpp in Sources */,
 				2A981F01227F9FF00060FDD2 /* Config.cpp in Sources */,
 				2A981F27227F9FF10060FDD2 /* XMLReaderUtils.cpp in Sources */,
 				2A981F1F227F9FF10060FDD2 /* FileFormatResolveCube.cpp in Sources */,
-				2A981FB1227F9FF10060FDD2 /* UnitTest.cpp in Sources */,
 				2A981F45227F9FF10060FDD2 /* CDLOpCPU.cpp in Sources */,
+				2AEABA0423424DC50053BCB6 /* LUT1DTransform.cpp in Sources */,
+				2AEAB9ED23424D160053BCB6 /* FormatMetadata.cpp in Sources */,
 				2A981F35227F9FF10060FDD2 /* Look.cpp in Sources */,
 				2A981F77227F9FF10060FDD2 /* Lut3DOpGPU.cpp in Sources */,
 				2A981F2E227F9FF10060FDD2 /* HashUtils.cpp in Sources */,
 				2A981F10227F9FF00060FDD2 /* CTFTransform.cpp in Sources */,
 				2A981F1A227F9FF00060FDD2 /* FileFormatICC.cpp in Sources */,
-				2A981F7F227F9FF10060FDD2 /* Metadata.cpp in Sources */,
 				2A981F94227F9FF10060FDD2 /* PathUtils.cpp in Sources */,
 				2A981FAE227F9FF10060FDD2 /* MatrixTransform.cpp in Sources */,
 				2A981F00227F9FF00060FDD2 /* ColorSpaceSet.cpp in Sources */,
@@ -1037,6 +1067,7 @@
 				2A981F43227F9FF10060FDD2 /* AllocationOp.cpp in Sources */,
 				2A981F2C227F9FF10060FDD2 /* GpuShaderUtils.cpp in Sources */,
 				2A981F49227F9FF10060FDD2 /* CDLOps.cpp in Sources */,
+				2AEAB9FD23424D780053BCB6 /* ExposureContrastOps.cpp in Sources */,
 				2A981F02227F9FF00060FDD2 /* Context.cpp in Sources */,
 				2A981F86227F9FF10060FDD2 /* RangeOpData.cpp in Sources */,
 				2A981F96227F9FF10060FDD2 /* Platform.cpp in Sources */,
@@ -1052,6 +1083,7 @@
 				2A981F53227F9FF10060FDD2 /* FixedFunctionOps.cpp in Sources */,
 				2A981F9F227F9FF10060FDD2 /* Transform.cpp in Sources */,
 				2A981F4F227F9FF10060FDD2 /* FixedFunctionOpData.cpp in Sources */,
+				2AEAB9E923424D0B0053BCB6 /* GPUProcessor.cpp in Sources */,
 				2A981F12227F9FF00060FDD2 /* FileFormat3DL.cpp in Sources */,
 				2A981F75227F9FF10060FDD2 /* Lut3DOpData.cpp in Sources */,
 				2A981F05227F9FF00060FDD2 /* Display.cpp in Sources */,
@@ -1081,8 +1113,9 @@
 					../../../../src/OpenColorIO,
 					../../../../src/utils,
 					"../../../../ext/yaml-cpp/include",
-					"../../../../ext/ilmbasehalf-2.2.1",
-					../../../../ext/expat,
+					../../../../ext/pystring,
+					../../../../ext/openexr/IlmBase,
+					../../../../ext/libexpat/expat,
 					../../../../ext/sampleicc/src/include,
 				);
 				ONLY_ACTIVE_ARCH = YES;
@@ -1110,8 +1143,9 @@
 					../../../../src/OpenColorIO,
 					../../../../src/utils,
 					"../../../../ext/yaml-cpp/include",
-					"../../../../ext/ilmbasehalf-2.2.1",
-					../../../../ext/expat,
+					../../../../ext/pystring,
+					../../../../ext/openexr/IlmBase,
+					../../../../ext/libexpat/expat,
 					../../../../ext/sampleicc/src/include,
 				);
 				PREBINDING = NO;

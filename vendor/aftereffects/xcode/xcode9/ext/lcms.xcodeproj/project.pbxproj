@@ -34,6 +34,8 @@
 		2ACF9F471478251500991ED5 /* cmswtpnt.c in Sources */ = {isa = PBXBuildFile; fileRef = 2ACF9EE41478251500991ED5 /* cmswtpnt.c */; };
 		2ACF9F481478251500991ED5 /* cmsxform.c in Sources */ = {isa = PBXBuildFile; fileRef = 2ACF9EE51478251500991ED5 /* cmsxform.c */; };
 		2ACF9F491478251500991ED5 /* lcms2_internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 2ACF9EE71478251500991ED5 /* lcms2_internal.h */; };
+		2AEAB9A0233EDBD80053BCB6 /* cmsalpha.c in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB99E233EDBD70053BCB6 /* cmsalpha.c */; };
+		2AEAB9A1233EDBD80053BCB6 /* cmshalf.c in Sources */ = {isa = PBXBuildFile; fileRef = 2AEAB99F233EDBD70053BCB6 /* cmshalf.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -65,6 +67,8 @@
 		2ACF9EE41478251500991ED5 /* cmswtpnt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmswtpnt.c; sourceTree = "<group>"; };
 		2ACF9EE51478251500991ED5 /* cmsxform.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmsxform.c; sourceTree = "<group>"; };
 		2ACF9EE71478251500991ED5 /* lcms2_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lcms2_internal.h; sourceTree = "<group>"; };
+		2AEAB99E233EDBD70053BCB6 /* cmsalpha.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmsalpha.c; sourceTree = "<group>"; };
+		2AEAB99F233EDBD70053BCB6 /* cmshalf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmshalf.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,20 +93,20 @@
 		0867D691FE84028FC02AAC07 /* lcms */ = {
 			isa = PBXGroup;
 			children = (
-				2ACF9E5A1478251500991ED5 /* lcms2-2.1 */,
+				2ACF9E5A1478251500991ED5 /* Little-CMS */,
 				034768DDFF38A45A11DB9C8B /* Products */,
 			);
 			name = lcms;
 			sourceTree = "<group>";
 		};
-		2ACF9E5A1478251500991ED5 /* lcms2-2.1 */ = {
+		2ACF9E5A1478251500991ED5 /* Little-CMS */ = {
 			isa = PBXGroup;
 			children = (
 				2ACF9E6C1478251500991ED5 /* include */,
 				2ACF9ECD1478251500991ED5 /* src */,
 			);
-			name = "lcms2-2.1";
-			path = "../../../../../ext/lcms2-2.1";
+			name = "Little-CMS";
+			path = "../../../../../ext/Little-CMS";
 			sourceTree = SOURCE_ROOT;
 		};
 		2ACF9E6C1478251500991ED5 /* include */ = {
@@ -117,6 +121,8 @@
 		2ACF9ECD1478251500991ED5 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				2AEAB99E233EDBD70053BCB6 /* cmsalpha.c */,
+				2AEAB99F233EDBD70053BCB6 /* cmshalf.c */,
 				2ACF9ECE1478251500991ED5 /* cmscam02.c */,
 				2ACF9ECF1478251500991ED5 /* cmscgats.c */,
 				2ACF9ED01478251500991ED5 /* cmscnvrt.c */,
@@ -166,7 +172,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2ACF9E59147824FB00991ED5 /* Build configuration list for PBXNativeTarget "lcms" */;
 			buildPhases = (
-				2AF569A814799AF900F9968C /* Unpack lcms2 */,
+				2AF569A814799AF900F9968C /* Download lcms2 */,
 				2ACF9E52147824F500991ED5 /* Headers */,
 				2ACF9E53147824F500991ED5 /* Sources */,
 				2ACF9E54147824F500991ED5 /* Frameworks */,
@@ -208,21 +214,20 @@
 /* End PBXProject section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		2AF569A814799AF900F9968C /* Unpack lcms2 */ = {
+		2AF569A814799AF900F9968C /* Download lcms2 */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/../../../../../ext/lcms2-2.1.tar.gz",
 			);
-			name = "Unpack lcms2";
+			name = "Download lcms2";
 			outputPaths = (
-				"$(SRCROOT)/../../../../../ext/lcms2-2.1",
+				"$(SRCROOT)/../../../../../ext/Little-CMS",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd $SRCROOT/../../../../../ext\n\nif [ ! -d lcms2-2.1 ]\nthen\n\ttar -xzf lcms2-2.1.tar.gz\nfi\n";
+			shellScript = "cd $SRCROOT/../../../../../ext\n\nif [ ! -d Little-CMS ]\nthen\n\tgit clone https://github.com/mm2/Little-CMS -b lcms2.9\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -235,6 +240,7 @@
 				2ACF9F321478251500991ED5 /* cmscgats.c in Sources */,
 				2ACF9F331478251500991ED5 /* cmscnvrt.c in Sources */,
 				2ACF9F341478251500991ED5 /* cmserr.c in Sources */,
+				2AEAB9A1233EDBD80053BCB6 /* cmshalf.c in Sources */,
 				2ACF9F351478251500991ED5 /* cmsgamma.c in Sources */,
 				2ACF9F361478251500991ED5 /* cmsgmt.c in Sources */,
 				2ACF9F371478251500991ED5 /* cmsintrp.c in Sources */,
@@ -243,6 +249,7 @@
 				2ACF9F3A1478251500991ED5 /* cmslut.c in Sources */,
 				2ACF9F3B1478251500991ED5 /* cmsmd5.c in Sources */,
 				2ACF9F3C1478251500991ED5 /* cmsmtrx.c in Sources */,
+				2AEAB9A0233EDBD80053BCB6 /* cmsalpha.c in Sources */,
 				2ACF9F3D1478251500991ED5 /* cmsnamed.c in Sources */,
 				2ACF9F3E1478251500991ED5 /* cmsopt.c in Sources */,
 				2ACF9F3F1478251500991ED5 /* cmspack.c in Sources */,

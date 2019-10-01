@@ -16,6 +16,7 @@
 		2AB82E47227FDC6200CF8E58 /* AGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AB82E46227FDC6200CF8E58 /* AGL.framework */; };
 		2AB82E4A227FDCA600CF8E58 /* libexpat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AB82E34227FD6FB00CF8E58 /* libexpat.a */; };
 		2AB82E4B227FDCA600CF8E58 /* libilmbasehalf.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2A9820A2227FAC830060FDD2 /* libilmbasehalf.a */; };
+		2AEABA42234257DB0053BCB6 /* libpystring.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AEABA2723424F160053BCB6 /* libpystring.a */; };
 		2AF56B96147A431100F9968C /* OpenColorIO_AE_ArbData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF56B8F147A431100F9968C /* OpenColorIO_AE_ArbData.cpp */; };
 		2AF56B99147A431100F9968C /* OpenColorIO_AE_PiPL.r in Rez */ = {isa = PBXBuildFile; fileRef = 2AF56B92147A431100F9968C /* OpenColorIO_AE_PiPL.r */; };
 		2AF56B9A147A431100F9968C /* OpenColorIO_AE_UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF56B93147A431100F9968C /* OpenColorIO_AE_UI.cpp */; };
@@ -59,6 +60,34 @@
 			proxyType = 1;
 			remoteGlobalIDString = 2ACF559B1477692300991ED5;
 			remoteInfo = expat;
+		};
+		2AEABA2123424F160053BCB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2A98209D227FAC830060FDD2 /* ilmbasehalf.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2AEAB9BD233EE7380053BCB6;
+			remoteInfo = eLut;
+		};
+		2AEABA2323424F160053BCB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2A98209D227FAC830060FDD2 /* ilmbasehalf.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2AEAB9CE233EE8150053BCB6;
+			remoteInfo = toFloat;
+		};
+		2AEABA2623424F160053BCB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2AEABA1C23424F150053BCB6 /* pystring.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2AEABA0E23424ED50053BCB6;
+			remoteInfo = pystring;
+		};
+		2AEABA40234257CF0053BCB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2AEABA1C23424F150053BCB6 /* pystring.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 2AEABA0D23424ED50053BCB6;
+			remoteInfo = pystring;
 		};
 		2AF56EE6147AD10E00F9968C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -117,6 +146,7 @@
 		2AB82E42227FDC2D00CF8E58 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		2AB82E44227FDC5B00CF8E58 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		2AB82E46227FDC6200CF8E58 /* AGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AGL.framework; path = System/Library/Frameworks/AGL.framework; sourceTree = SDKROOT; };
+		2AEABA1C23424F150053BCB6 /* pystring.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = pystring.xcodeproj; path = ../ext/pystring.xcodeproj; sourceTree = "<group>"; };
 		2AF56B8F147A431100F9968C /* OpenColorIO_AE_ArbData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = OpenColorIO_AE_ArbData.cpp; path = ../../../OpenColorIO_AE_ArbData.cpp; sourceTree = SOURCE_ROOT; usesTabs = 0; };
 		2AF56B90147A431100F9968C /* OpenColorIO_AE_Dialogs_Cocoa.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = OpenColorIO_AE_Dialogs_Cocoa.mm; path = ../../../mac/OpenColorIO_AE_Dialogs_Cocoa.mm; sourceTree = SOURCE_ROOT; usesTabs = 0; };
 		2AF56B92147A431100F9968C /* OpenColorIO_AE_PiPL.r */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = OpenColorIO_AE_PiPL.r; path = ../../../OpenColorIO_AE_PiPL.r; sourceTree = SOURCE_ROOT; usesTabs = 0; };
@@ -152,6 +182,7 @@
 				2AF56EE8147AD11200F9968C /* libOpenColorIO.a in Frameworks */,
 				2AF57005147AE17400F9968C /* libyaml.a in Frameworks */,
 				2AF999CB147E1DD200FEB83B /* liblcms.a in Frameworks */,
+				2AEABA42234257DB0053BCB6 /* libpystring.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -162,6 +193,8 @@
 			isa = PBXGroup;
 			children = (
 				2A9820A2227FAC830060FDD2 /* libilmbasehalf.a */,
+				2AEABA2223424F160053BCB6 /* eLut */,
+				2AEABA2423424F160053BCB6 /* toFloat */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -182,6 +215,14 @@
 				2AB82E42227FDC2D00CF8E58 /* Cocoa.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		2AEABA1D23424F150053BCB6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2AEABA2723424F160053BCB6 /* libpystring.a */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 		2AF56EE3147AD10E00F9968C /* Products */ = {
@@ -236,6 +277,7 @@
 				2A180A6B14801FFA0000D11A /* OpenColorIO_AE_MonitorProfileChooser_Controller.m */,
 				2AF56EE2147AD10E00F9968C /* OpenColorIO.xcodeproj */,
 				2AF56FF3147AE16A00F9968C /* yaml.xcodeproj */,
+				2AEABA1C23424F150053BCB6 /* pystring.xcodeproj */,
 				2AF999C0147E1DCA00FEB83B /* lcms.xcodeproj */,
 				2A98209D227FAC830060FDD2 /* ilmbasehalf.xcodeproj */,
 				2AB82E2F227FD6FB00CF8E58 /* expat.xcodeproj */,
@@ -268,6 +310,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				2AEABA41234257CF0053BCB6 /* PBXTargetDependency */,
 				2AB82E49227FDC9700CF8E58 /* PBXTargetDependency */,
 				2A9820A4227FAC920060FDD2 /* PBXTargetDependency */,
 				2AF57015147AE18600F9968C /* PBXTargetDependency */,
@@ -317,6 +360,10 @@
 					ProjectRef = 2AF56EE2147AD10E00F9968C /* OpenColorIO.xcodeproj */;
 				},
 				{
+					ProductGroup = 2AEABA1D23424F150053BCB6 /* Products */;
+					ProjectRef = 2AEABA1C23424F150053BCB6 /* pystring.xcodeproj */;
+				},
+				{
 					ProductGroup = 2AF56FF4147AE16A00F9968C /* Products */;
 					ProjectRef = 2AF56FF3147AE16A00F9968C /* yaml.xcodeproj */;
 				},
@@ -341,6 +388,27 @@
 			fileType = archive.ar;
 			path = libexpat.a;
 			remoteRef = 2AB82E33227FD6FB00CF8E58 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2AEABA2223424F160053BCB6 /* eLut */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = eLut;
+			remoteRef = 2AEABA2123424F160053BCB6 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2AEABA2423424F160053BCB6 /* toFloat */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = toFloat;
+			remoteRef = 2AEABA2323424F160053BCB6 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2AEABA2723424F160053BCB6 /* libpystring.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libpystring.a;
+			remoteRef = 2AEABA2623424F160053BCB6 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		2AF56EE7147AD10E00F9968C /* libOpenColorIO.a */ = {
@@ -421,6 +489,11 @@
 			name = expat;
 			targetProxy = 2AB82E48227FDC9700CF8E58 /* PBXContainerItemProxy */;
 		};
+		2AEABA41234257CF0053BCB6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = pystring;
+			targetProxy = 2AEABA40234257CF0053BCB6 /* PBXContainerItemProxy */;
+		};
 		2AF57015147AE18600F9968C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = yaml;
@@ -446,6 +519,7 @@
 				"AE_SDK[arch=i386]" = "\"../../../../../ext/Adobe After Effects CS3 Mac SDK\"";
 				"AE_SDK[arch=ppc]" = "\"../../../../../ext/Adobe After Effects CS3 Mac SDK\"";
 				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_MODEL_TUNING = "";
 				GCC_OPTIMIZATION_LEVEL = 3;
@@ -460,7 +534,7 @@
 					"$(AE_SDK)/Examples/Headers/SP",
 					"$(AE_SDK)/Examples/Resources",
 					"../../../../../ext/yaml-cpp/include",
-					"../../../../../ext/lcms2-2.1/include",
+					"../../../../../ext/Little-CMS/include",
 				);
 				REZ_PREPROCESSOR_DEFINITIONS = __MACH__;
 				REZ_SEARCH_PATHS = "$(SDK_PATH)/Developer/Headers/FlatCarbon";
@@ -493,6 +567,7 @@
 				"AE_SDK[arch=i386]" = "\"../../../../../ext/Adobe After Effects CS3 Mac SDK\"";
 				"AE_SDK[arch=ppc]" = "\"../../../../../ext/Adobe After Effects CS3 Mac SDK\"";
 				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				COPY_PHASE_STRIP = NO;
 				GCC_MODEL_TUNING = "";
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -506,7 +581,7 @@
 					"$(AE_SDK)/Examples/Headers/SP",
 					"$(AE_SDK)/Examples/Resources",
 					"../../../../../ext/yaml-cpp/include",
-					"../../../../../ext/lcms2-2.1/include",
+					"../../../../../ext/Little-CMS/include",
 				);
 				REZ_PREPROCESSOR_DEFINITIONS = __MACH__;
 				REZ_SEARCH_PATHS = "$(SDK_PATH)/Developer/Headers/FlatCarbon";
