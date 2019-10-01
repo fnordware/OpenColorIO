@@ -586,6 +586,9 @@ void OpenColorIO_AE_Context::setupConvert(const char *input, const char *output)
     
     _processor = _config->getProcessor(transform);
     
+    _cpu_processor = _processor->getDefaultCPUProcessor();
+    _gpu_processor = _processor->getDefaultGPUProcessor();
+    
     _action = OCIO_ACTION_CONVERT;
     
     UpdateOCIOGLState();
@@ -625,6 +628,9 @@ void OpenColorIO_AE_Context::setupDisplay(const char *input, const char *device,
 
     _processor = _config->getProcessor(transform);
     
+    _cpu_processor = _processor->getDefaultCPUProcessor();
+    _gpu_processor = _processor->getDefaultGPUProcessor();
+    
     _action = OCIO_ACTION_DISPLAY;
     
     UpdateOCIOGLState();
@@ -648,6 +654,9 @@ void OpenColorIO_AE_Context::setupLUT(bool invert, OCIO_Interp interpolation)
     
     _processor = _config->getProcessor(transform);
     
+    _cpu_processor = _processor->getDefaultCPUProcessor();
+    _gpu_processor = _processor->getDefaultGPUProcessor();
+
     _invert = invert;
     _interpolation = interpolation;
     
@@ -676,7 +685,7 @@ bool OpenColorIO_AE_Context::ExportLUT(const std::string &path, const std::strin
         std::string description = path.substr(path.find_last_of(delimiter) + 1,
                                             1 + filename_end - filename_start);
         
-        SaveICCProfileToFile(path, _processor, cubesize, whitepointtemp,
+        SaveICCProfileToFile(path, _cpu_processor, cubesize, whitepointtemp,
                                 display_icc_path, description, copyright, false);
     }
     else
@@ -890,7 +899,7 @@ void OpenColorIO_AE_Context::UpdateOCIOGLState()
         shaderDesc->setResourcePrefix("ocio_");
         
         // Step 2: Collect the shader program information for a specific processor
-        _processor->extractGpuShaderInfo(shaderDesc);
+        _gpu_processor->extractGpuShaderInfo(shaderDesc);
         
         // Step 3: Use the helper OpenGL builder
         _oglBuilder = OCIO::OpenGLBuilder::Create(shaderDesc);

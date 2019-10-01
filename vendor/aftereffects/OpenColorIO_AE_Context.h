@@ -74,6 +74,8 @@ class OpenColorIO_AE_Context
     
     OCIO::ConstConfigRcPtr config() const { return _config; }
     OCIO::ConstProcessorRcPtr processor() const { return _processor; }
+    OCIO::ConstCPUProcessorRcPtr cpu_processor() const { return _cpu_processor; }
+    OCIO::ConstGPUProcessorRcPtr gpu_processor() const { return _gpu_processor; }
     
     bool ExportLUT(const std::string &path, const std::string &display_icc_path);
     
@@ -105,6 +107,8 @@ class OpenColorIO_AE_Context
     
     OCIO::ConstConfigRcPtr      _config;
     OCIO::ConstProcessorRcPtr   _processor;
+    OCIO::ConstCPUProcessorRcPtr   _cpu_processor;
+    OCIO::ConstGPUProcessorRcPtr   _gpu_processor;
     
     
     bool _gl_init;

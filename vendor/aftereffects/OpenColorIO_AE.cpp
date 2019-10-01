@@ -464,7 +464,7 @@ static PF_Err Process_Iterate(
 
         OCIO::PackedImageDesc img(rOut, i_data->width, 1, 4);
                                                 
-        i_data->context->processor()->apply(img);
+        i_data->context->cpu_processor()->apply(img);
     }
     catch(...)
     {
