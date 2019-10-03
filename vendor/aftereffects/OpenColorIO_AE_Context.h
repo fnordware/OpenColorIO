@@ -59,7 +59,7 @@ class OpenColorIO_AE_Context
     
     void setupConvert(const char *input, const char *output);
     void setupDisplay(const char *input, const char *device, const char *transform);
-    void setupLUT(bool invert, OCIO_Interp interpolation);
+    void setupLUT(OCIO_Invert invert, OCIO_Interp interpolation);
   
     typedef std::vector<std::string> SpaceVec;
 
@@ -101,7 +101,7 @@ class OpenColorIO_AE_Context
     SpaceVec _devices;
     SpaceVec _transforms;
     
-    bool _invert;
+    OCIO_Invert _invert;
     OCIO_Interp _interpolation;
     
     

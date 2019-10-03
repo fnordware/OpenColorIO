@@ -27,7 +27,7 @@ PF_Err ArbNewDefault(PF_InData *in_data, PF_OutData *out_data,
             arb_data->version           = CURRENT_ARB_VERSION;
             
             arb_data->action            = OCIO_ACTION_NONE;
-            arb_data->invert            = FALSE;
+            arb_data->invert            = OCIO_INVERT_OFF;
             
             arb_data->storage           = OCIO_STORAGE_NONE;
             arb_data->storage_size      = 0;

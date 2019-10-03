@@ -416,7 +416,14 @@ static PF_Err DrawEvent(
                     // Invert button
                     bot.MoveTo(panel_left + BUTTONS_INDENT_H, buttons_top);
                     
-                    DrawButton(bot, "Invert", BUTTON_WIDTH, arb_data->invert);
+                    DrawButton(bot, "Invert", BUTTON_WIDTH, arb_data->invert > OCIO_INVERT_OFF);
+                    
+                    if(arb_data->invert == OCIO_INVERT_EXACT)
+                    {
+                        bot.Move(BUTTON_WIDTH + FIELD_TEXT_INDENT_H, BUTTON_HEIGHT * 3 / 4);
+                        
+                        bot.DrawString("Exact");
+                    }
                     
                     // interpolation menu
                     int buttons_bottom = buttons_top + BUTTON_HEIGHT;
@@ -632,7 +639,7 @@ static void DoClickPath(
             
             if(arb_data->action == OCIO_ACTION_LUT)
             {
-                arb_data->invert = FALSE;
+                arb_data->invert = OCIO_INVERT_OFF;
                 arb_data->interpolation = OCIO_INTERP_LINEAR;
             }
             else
@@ -804,7 +811,7 @@ static void DoClickConfig(
                 
                 if(arb_data->action == OCIO_ACTION_LUT)
                 {
-                    arb_data->invert = FALSE;
+                    arb_data->invert = OCIO_INVERT_OFF;
                     arb_data->interpolation = OCIO_INTERP_LINEAR;
                 }
                 else
@@ -860,9 +867,13 @@ static void DoClickConvertDisplay(
             // doing it this way so that any exceptions thrown by setupLUT
             // because the LUT can't be inverted are thrown before
             // I actually chenge the ArbData setting
-            seq_data->context->setupLUT(!arb_data->invert, arb_data->interpolation);
+            const OCIO_Invert new_invert = (arb_data->invert == OCIO_INVERT_OFF ?
+                                            (event_extra->u.do_click.modifiers == PF_Mod_NONE ? OCIO_INVERT_ON : OCIO_INVERT_EXACT) :
+                                            OCIO_INVERT_OFF);
             
-            arb_data->invert = !arb_data->invert;
+            seq_data->context->setupLUT(new_invert, arb_data->interpolation);
+            
+            arb_data->invert = new_invert;
         
             params[OCIO_DATA]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
         }

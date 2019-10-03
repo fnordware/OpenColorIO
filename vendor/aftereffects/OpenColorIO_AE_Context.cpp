@@ -539,7 +539,7 @@ bool OpenColorIO_AE_Context::Verify(const ArbitraryData *arb_data, const std::st
     // Returning false means the context will be deleted and rebuilt.
     if(arb_data->action == OCIO_ACTION_LUT)
     {
-        if(_invert != (bool)arb_data->invert ||
+        if(_invert != arb_data->invert ||
             _interpolation != arb_data->interpolation ||
             force_reset)
         {
@@ -637,7 +637,7 @@ void OpenColorIO_AE_Context::setupDisplay(const char *input, const char *device,
 }
 
 
-void OpenColorIO_AE_Context::setupLUT(bool invert, OCIO_Interp interpolation)
+void OpenColorIO_AE_Context::setupLUT(OCIO_Invert invert, OCIO_Interp interpolation)
 {
     OCIO::FileTransformRcPtr transform = OCIO::FileTransform::Create();
     
@@ -650,12 +650,20 @@ void OpenColorIO_AE_Context::setupLUT(bool invert, OCIO_Interp interpolation)
     
     transform->setSrc( _path.c_str() );
     transform->setInterpolation(static_cast<OCIO::Interpolation>(interpolation));
-    transform->setDirection(invert ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);
+    transform->setDirection(invert > OCIO_INVERT_OFF ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);
     
     _processor = _config->getProcessor(transform);
     
-    _cpu_processor = _processor->getDefaultCPUProcessor();
-    _gpu_processor = _processor->getDefaultGPUProcessor();
+    if(invert == OCIO_INVERT_EXACT)
+    {
+        _cpu_processor = _processor->getOptimizedCPUProcessor(OCIO::OPTIMIZATION_DEFAULT, OCIO::FINALIZATION_EXACT);
+        _gpu_processor = _processor->getOptimizedGPUProcessor(OCIO::OPTIMIZATION_DEFAULT, OCIO::FINALIZATION_EXACT);
+    }
+    else
+    {
+        _cpu_processor = _processor->getDefaultCPUProcessor();
+        _gpu_processor = _processor->getDefaultGPUProcessor();
+    }
 
     _invert = invert;
     _interpolation = interpolation;
