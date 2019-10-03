@@ -35,30 +35,38 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmscam02.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmscgats.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmscnvrt.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmserr.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsgamma.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsgmt.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsintrp.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsio0.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsio1.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmslut.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsmd5.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsmtrx.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsnamed.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsopt.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmspack.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmspcs.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsplugin.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsps2.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmssamp.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmssm.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmstypes.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsvirt.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmswtpnt.c" />
-    <ClCompile Include="..\..\..\..\..\ext\lcms2-2.1\src\cmsxform.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsalpha.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmscam02.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmscgats.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmscnvrt.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmserr.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsgamma.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsgmt.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmshalf.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsintrp.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsio0.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsio1.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmslut.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsmd5.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsmtrx.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsnamed.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsopt.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmspack.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmspcs.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsplugin.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsps2.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmssamp.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmssm.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmstypes.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsvirt.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmswtpnt.c" />
+    <ClCompile Include="..\..\..\..\..\ext\Little-CMS\src\cmsxform.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\..\ext\Little-CMS\src\lcms2.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\ext\Little-CMS\src\lcms2_internal.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -197,13 +205,23 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\..\..\..\ext\lcms2-2.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\ext\Little-CMS\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist Little-CMS goto dontbother
+
+git clone https://github.com/mm2/Little-CMS -b lcms2.9
+
+:dontbother</Command>
+      <Message>Download Little-CMS</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_4ByteStruct|x64'">
     <ClCompile>
@@ -212,7 +230,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\..\..\..\ext\lcms2-2.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\ext\Little-CMS\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -220,6 +238,16 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist Little-CMS goto dontbother
+
+git clone https://github.com/mm2/Little-CMS -b lcms2.9
+
+:dontbother</Command>
+      <Message>Download Little-CMS</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -235,6 +263,16 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist Little-CMS goto dontbother
+
+git clone https://github.com/mm2/Little-CMS -b lcms2.9
+
+:dontbother</Command>
+      <Message>Download Little-CMS</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_4ByteStruct|Win32'">
     <ClCompile>
@@ -250,6 +288,16 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist Little-CMS goto dontbother
+
+git clone https://github.com/mm2/Little-CMS -b lcms2.9
+
+:dontbother</Command>
+      <Message>Download Little-CMS</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -269,6 +317,16 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist Little-CMS goto dontbother
+
+git clone https://github.com/mm2/Little-CMS -b lcms2.9
+
+:dontbother</Command>
+      <Message>Download Little-CMS</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_4ByteStruct|Win32'">
     <ClCompile>
@@ -288,6 +346,16 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist Little-CMS goto dontbother
+
+git clone https://github.com/mm2/Little-CMS -b lcms2.9
+
+:dontbother</Command>
+      <Message>Download Little-CMS</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -298,7 +366,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\..\..\..\ext\lcms2-2.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\ext\Little-CMS\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -307,6 +375,16 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist Little-CMS goto dontbother
+
+git clone https://github.com/mm2/Little-CMS -b lcms2.9
+
+:dontbother</Command>
+      <Message>Download Little-CMS</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_4ByteStruct|x64'">
     <ClCompile>
@@ -317,7 +395,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\..\..\..\ext\lcms2-2.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\ext\Little-CMS\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -327,6 +405,16 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist Little-CMS goto dontbother
+
+git clone https://github.com/mm2/Little-CMS -b lcms2.9
+
+:dontbother</Command>
+      <Message>Download Little-CMS</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

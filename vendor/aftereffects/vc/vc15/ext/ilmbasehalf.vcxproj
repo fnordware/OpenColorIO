@@ -35,15 +35,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\ext\ilmbasehalf-2.2.1\ilmbase\eLut.h" />
-    <ClInclude Include="..\..\..\..\..\ext\ilmbasehalf-2.2.1\ilmbase\half.h" />
-    <ClInclude Include="..\..\..\..\..\ext\ilmbasehalf-2.2.1\ilmbase\halfExport.h" />
-    <ClInclude Include="..\..\..\..\..\ext\ilmbasehalf-2.2.1\ilmbase\halfFunction.h" />
-    <ClInclude Include="..\..\..\..\..\ext\ilmbasehalf-2.2.1\ilmbase\halfLimits.h" />
-    <ClInclude Include="..\..\..\..\..\ext\ilmbasehalf-2.2.1\ilmbase\toFloat.h" />
+    <ClCompile Include="..\..\..\..\..\ext\openexr\IlmBase\OpenEXR\half.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\ext\ilmbasehalf-2.2.1\ilmbase\half.cpp" />
+    <ClInclude Include="..\..\..\..\..\ext\openexr\IlmBase\OpenEXR\eLut.h" />
+    <ClInclude Include="..\..\..\..\..\ext\openexr\IlmBase\OpenEXR\half.h" />
+    <ClInclude Include="..\..\..\..\..\ext\openexr\IlmBase\OpenEXR\halfExport.h" />
+    <ClInclude Include="..\..\..\..\..\ext\openexr\IlmBase\OpenEXR\halfFunction.h" />
+    <ClInclude Include="..\..\..\..\..\ext\openexr\IlmBase\OpenEXR\halfLimits.h" />
+    <ClInclude Include="..\..\..\..\..\ext\openexr\IlmBase\OpenEXR\toFloat.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -188,6 +188,25 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext\openexr\IlmBase\OpenEXR"
+
+if exist eLut.h goto gotelut
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\eLut.exe" &gt; eLut.h
+
+:gotelut
+
+
+if exist toFloat.h goto gottofloat
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\toFloat.exe" &gt; toFloat.h
+
+:gottofloat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Make openexr headers</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_4ByteStruct|x64'">
     <ClCompile>
@@ -203,6 +222,25 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext\openexr\IlmBase\OpenEXR"
+
+if exist eLut.h goto gotelut
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\eLut.exe" &gt; eLut.h
+
+:gotelut
+
+
+if exist toFloat.h goto gottofloat
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\toFloat.exe" &gt; toFloat.h
+
+:gottofloat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Make openexr headers</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -217,6 +255,25 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext\openexr\IlmBase\OpenEXR"
+
+if exist eLut.h goto gotelut
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\eLut.exe" &gt; eLut.h
+
+:gotelut
+
+
+if exist toFloat.h goto gottofloat
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\toFloat.exe" &gt; toFloat.h
+
+:gottofloat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Make openexr headers</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_4ByteStruct|Win32'">
     <ClCompile>
@@ -231,6 +288,25 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext\openexr\IlmBase\OpenEXR"
+
+if exist eLut.h goto gotelut
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\eLut.exe" &gt; eLut.h
+
+:gotelut
+
+
+if exist toFloat.h goto gottofloat
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\toFloat.exe" &gt; toFloat.h
+
+:gottofloat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Make openexr headers</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -249,6 +325,25 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext\openexr\IlmBase\OpenEXR"
+
+if exist eLut.h goto gotelut
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\eLut.exe" &gt; eLut.h
+
+:gotelut
+
+
+if exist toFloat.h goto gottofloat
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\toFloat.exe" &gt; toFloat.h
+
+:gottofloat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Make openexr headers</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_4ByteStruct|Win32'">
     <ClCompile>
@@ -267,6 +362,25 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext\openexr\IlmBase\OpenEXR"
+
+if exist eLut.h goto gotelut
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\eLut.exe" &gt; eLut.h
+
+:gotelut
+
+
+if exist toFloat.h goto gottofloat
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\toFloat.exe" &gt; toFloat.h
+
+:gottofloat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Make openexr headers</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -285,6 +399,25 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext\openexr\IlmBase\OpenEXR"
+
+if exist eLut.h goto gotelut
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\eLut.exe" &gt; eLut.h
+
+:gotelut
+
+
+if exist toFloat.h goto gottofloat
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\toFloat.exe" &gt; toFloat.h
+
+:gottofloat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Make openexr headers</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_4ByteStruct|x64'">
     <ClCompile>
@@ -304,6 +437,25 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext\openexr\IlmBase\OpenEXR"
+
+if exist eLut.h goto gotelut
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\eLut.exe" &gt; eLut.h
+
+:gotelut
+
+
+if exist toFloat.h goto gottofloat
+
+"$(ProjectDir)\build\$(Platform)\$(Configuration)\toFloat.exe" &gt; toFloat.h
+
+:gottofloat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Make openexr headers</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -230,6 +230,18 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist yaml-cpp goto dontbother
+
+git clone https://github.com/jbeder/yaml-cpp -b release-0.3.0
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download yaml</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_4ByteStruct|x64'">
     <ClCompile>
@@ -246,6 +258,18 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist yaml-cpp goto dontbother
+
+git clone https://github.com/jbeder/yaml-cpp -b release-0.3.0
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download yaml</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -261,6 +285,18 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist yaml-cpp goto dontbother
+
+git clone https://github.com/jbeder/yaml-cpp -b release-0.3.0
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download yaml</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_4ByteStruct|Win32'">
     <ClCompile>
@@ -276,6 +312,18 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist yaml-cpp goto dontbother
+
+git clone https://github.com/jbeder/yaml-cpp -b release-0.3.0
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download yaml</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -295,6 +343,18 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist yaml-cpp goto dontbother
+
+git clone https://github.com/jbeder/yaml-cpp -b release-0.3.0
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download yaml</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_4ByteStruct|Win32'">
     <ClCompile>
@@ -314,6 +374,18 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist yaml-cpp goto dontbother
+
+git clone https://github.com/jbeder/yaml-cpp -b release-0.3.0
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download yaml</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -333,6 +405,18 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist yaml-cpp goto dontbother
+
+git clone https://github.com/jbeder/yaml-cpp -b release-0.3.0
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download yaml</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_4ByteStruct|x64'">
     <ClCompile>
@@ -353,6 +437,18 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist yaml-cpp goto dontbother
+
+git clone https://github.com/jbeder/yaml-cpp -b release-0.3.0
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download yaml</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

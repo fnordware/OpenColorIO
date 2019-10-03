@@ -73,7 +73,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..;..\..\..;..\..\..\..\..\include;..\..\..\..\..\src\utils\oglbuilder;..\..\..\..\..\src\apps\ociobakelut;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\SP;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\Win;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Resources;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Util;..\..\..\..\..\ext\glew-2.1.0\include;..\..\..\..\..\ext\lcms2-2.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\..;..\..\..\..\..\include;..\..\..\..\..\src\utils\oglbuilder;..\..\..\..\..\src\apps\ociobakelut;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\SP;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\Win;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Resources;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Util;..\..\..\..\..\ext\glew-2.2.0\include;..\..\..\..\..\ext\Little-CMS\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>OpenColorIO_SKIP_IMPORTS;GLEW_STATIC;MSWindows;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -108,7 +108,7 @@
       <ImportLibrary>$(IntDir)/$(TargetName).lib</ImportLibrary>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>..\build\$(Platform)\$(Configuration)_4ByteStruct;..\ext\build\$(Platform)\$(Configuration)_4ByteStruct</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OpenColorIO.lib;expat.lib;ilmbasehalf.lib;yaml.lib;lcms.lib;glew.lib;opengl32.lib;glu32.lib;Mscms.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OpenColorIO.lib;expat.lib;ilmbasehalf.lib;yaml.lib;pystring.lib;lcms.lib;glew.lib;opengl32.lib;glu32.lib;Mscms.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(TargetName).bsc</OutputFile>
@@ -126,7 +126,7 @@
     </Midl>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..;..\..\..;..\..\..\..\..\include;..\..\..\..\..\src\utils\oglbuilder;..\..\..\..\..\src\apps\ociobakelut;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\SP;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\Win;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Resources;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Util;..\..\..\..\..\ext\glew-2.1.0\include;..\..\..\..\..\ext\lcms2-2.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\..;..\..\..\..\..\include;..\..\..\..\..\src\utils\oglbuilder;..\..\..\..\..\src\apps\ociobakelut;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\SP;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\Win;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Resources;..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Util;..\..\..\..\..\ext\glew-2.2.0\include;..\..\..\..\..\ext\Little-CMS\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>OpenColorIO_SKIP_IMPORTS;GLEW_STATIC;MSWindows;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -162,7 +162,7 @@
       <ImportLibrary>$(IntDir)/$(TargetName).lib</ImportLibrary>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>..\build\$(Platform)\$(Configuration)_4ByteStruct;..\ext\build\$(Platform)\$(Configuration)_4ByteStruct</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OpenColorIO.lib;expat.lib;ilmbasehalf.lib;yaml.lib;lcms.lib;glew.lib;opengl32.lib;glu32.lib;Mscms.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OpenColorIO.lib;expat.lib;ilmbasehalf.lib;yaml.lib;pystring.lib;lcms.lib;glew.lib;opengl32.lib;glu32.lib;Mscms.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(TargetName).bsc</OutputFile>
@@ -196,7 +196,6 @@
     <ClInclude Include="..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Headers\PrSDKPixelFormat.h" />
     <ClInclude Include="..\..\..\..\..\src\apps\ociobakelut\ocioicc.h" />
     <ClInclude Include="..\..\..\..\..\src\utils\oglbuilder\glsl.h" />
-    <ClInclude Include="..\..\..\..\..\src\utils\pystring\pystring.h" />
     <ClInclude Include="..\..\..\DrawbotBot.h" />
     <ClInclude Include="..\..\..\OpenColorIO_AE.h" />
     <ClInclude Include="..\..\..\OpenColorIO_AE_Context.h" />
@@ -229,7 +228,6 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ClCompile Include="..\..\..\..\..\ext\Adobe After Effects CS5 Win SDK\Examples\Util\Smart_Utils.cpp" />
     <ClCompile Include="..\..\..\..\..\src\apps\ociobakelut\ocioicc.cpp" />
     <ClCompile Include="..\..\..\..\..\src\utils\oglbuilder\glsl.cpp" />
-    <ClCompile Include="..\..\..\..\..\src\utils\pystring\pystring.cpp" />
     <ClCompile Include="..\..\..\DrawbotBot.cpp" />
     <ClCompile Include="..\..\..\OpenColorIO_AE.cpp" />
     <ClCompile Include="..\..\..\OpenColorIO_AE_ArbData.cpp" />

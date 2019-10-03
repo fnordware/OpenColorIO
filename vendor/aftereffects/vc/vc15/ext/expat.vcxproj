@@ -35,24 +35,27 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\ext\expat\expat\loadlibrary.c" />
-    <ClCompile Include="..\..\..\..\..\ext\expat\expat\xmlparse.c" />
-    <ClCompile Include="..\..\..\..\..\ext\expat\expat\xmlrole.c" />
-    <ClCompile Include="..\..\..\..\..\ext\expat\expat\xmltok.c" />
-    <ClCompile Include="..\..\..\..\..\ext\expat\expat\xmltok_impl.c" />
-    <ClCompile Include="..\..\..\..\..\ext\expat\expat\xmltok_ns.c" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\ascii.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\asciitab.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\expat.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\expat_external.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\iasciitab.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\internal.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\latin1tab.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\nametab.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\siphash.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\utf8tab.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\winconfig.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\xmlrole.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\xmltok.h" />
+    <ClInclude Include="..\..\..\..\..\ext\libexpat\expat\expat\xmltok_impl.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\ascii.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\asciitab.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\expat.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\nametab.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\siphash.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\utf8tab.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\winconfig.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\xmlrole.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\xmltok.h" />
-    <ClInclude Include="..\..\..\..\..\ext\expat\expat\xmltok_impl.h" />
+    <ClCompile Include="..\..\..\..\..\ext\libexpat\expat\expat\xmlparse.c" />
+    <ClCompile Include="..\..\..\..\..\ext\libexpat\expat\expat\xmlrole.c" />
+    <ClCompile Include="..\..\..\..\..\ext\libexpat\expat\expat\xmltok.c" />
+    <ClCompile Include="..\..\..\..\..\ext\libexpat\expat\expat\xmltok_impl.c" />
+    <ClCompile Include="..\..\..\..\..\ext\libexpat\expat\expat\xmltok_ns.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -197,6 +200,19 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist libexpat goto dontbother
+
+git clone https://github.com/libexpat/libexpat -b R_2_2_9
+rename libexpat\expat\lib expat
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download expat</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_4ByteStruct|x64'">
     <ClCompile>
@@ -212,6 +228,19 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist libexpat goto dontbother
+
+git clone https://github.com/libexpat/libexpat -b R_2_2_9
+rename libexpat\expat\lib expat
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download expat</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -226,6 +255,19 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist libexpat goto dontbother
+
+git clone https://github.com/libexpat/libexpat -b R_2_2_9
+rename libexpat\expat\lib expat
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download expat</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_4ByteStruct|Win32'">
     <ClCompile>
@@ -240,6 +282,19 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist libexpat goto dontbother
+
+git clone https://github.com/libexpat/libexpat -b R_2_2_9
+rename libexpat\expat\lib expat
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download expat</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -258,6 +313,19 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist libexpat goto dontbother
+
+git clone https://github.com/libexpat/libexpat -b R_2_2_9
+rename libexpat\expat\lib expat
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download expat</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_4ByteStruct|Win32'">
     <ClCompile>
@@ -276,6 +344,19 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist libexpat goto dontbother
+
+git clone https://github.com/libexpat/libexpat -b R_2_2_9
+rename libexpat\expat\lib expat
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download expat</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -294,6 +375,19 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist libexpat goto dontbother
+
+git clone https://github.com/libexpat/libexpat -b R_2_2_9
+rename libexpat\expat\lib expat
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download expat</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_4ByteStruct|x64'">
     <ClCompile>
@@ -313,6 +407,19 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>cd /d "$(ProjectDir)..\..\..\..\..\ext"
+
+if exist libexpat goto dontbother
+
+git clone https://github.com/libexpat/libexpat -b R_2_2_9
+rename libexpat\expat\lib expat
+
+:dontbother</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Download expat</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

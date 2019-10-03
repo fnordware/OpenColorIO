@@ -725,7 +725,7 @@ static void DoExport(HWND hwndDlg)
 		        
 					if(do_export)
 					{
-						OCIO::ConstProcessorRcPtr processor;
+						OCIO::ConstCPUProcessorRcPtr processor;
 	                    
 						if(g_action == ACTION_CONVERT)
 						{
