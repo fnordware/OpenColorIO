@@ -32,6 +32,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eLut", "..\..\..\aftereffects\vc\vc15\ext\eLut.vcxproj", "{3C87F76D-1823-41D3-A2BD-74A06A86E15E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "toFloat", "..\..\..\aftereffects\vc\vc15\ext\toFloat.vcxproj", "{B72C64B3-9A8D-4ADC-BA85-6BE52006F7A8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3C87F76D-1823-41D3-A2BD-74A06A86E15E} = {3C87F76D-1823-41D3-A2BD-74A06A86E15E}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
