@@ -288,7 +288,8 @@ std::vector<std::string> Path::components(const std::string &path)
 
 
 OpenColorIO_AE_Context::OpenColorIO_AE_Context(const std::string &path, OCIO_Source source) :
-    _gl_init(false)
+    _gl_init(false),
+    _bit_depth(OCIO::BIT_DEPTH_F32)
 {
     _action = OCIO_ACTION_NONE;
     
@@ -381,7 +382,8 @@ OpenColorIO_AE_Context::OpenColorIO_AE_Context(const std::string &path, OCIO_Sou
 
 
 OpenColorIO_AE_Context::OpenColorIO_AE_Context(const ArbitraryData *arb_data, const std::string &dir) :
-    _gl_init(false)
+    _gl_init(false),
+    _bit_depth(OCIO::BIT_DEPTH_F32)
 {
     _action = OCIO_ACTION_NONE;
     
@@ -494,7 +496,7 @@ OpenColorIO_AE_Context::~OpenColorIO_AE_Context()
 }
 
 
-bool OpenColorIO_AE_Context::Verify(const ArbitraryData *arb_data, const std::string &dir)
+bool OpenColorIO_AE_Context::Verify(const ArbitraryData *arb_data, const std::string &dir, OCIO::BitDepth bit_depth)
 {
     if(_source != arb_data->source)
         return false;
@@ -531,8 +533,15 @@ bool OpenColorIO_AE_Context::Verify(const ArbitraryData *arb_data, const std::st
         return false;
     }
     
-    bool force_reset = (_action != arb_data->action);   
     
+    bool force_reset = (_action != arb_data->action);
+    
+    if(bit_depth != OCIO::BIT_DEPTH_UNKNOWN && _bit_depth != bit_depth)
+    {
+        _bit_depth = bit_depth;
+        
+        force_reset = true;
+    }
     
     // If the type and path are compatible, we can patch up
     // differences here and return true.
@@ -586,7 +595,7 @@ void OpenColorIO_AE_Context::setupConvert(const char *input, const char *output)
     
     _processor = _config->getProcessor(transform);
     
-    _cpu_processor = _processor->getDefaultCPUProcessor();
+    _cpu_processor = _processor->getOptimizedCPUProcessor(_bit_depth, _bit_depth, OCIO::OPTIMIZATION_DEFAULT, OCIO::FINALIZATION_DEFAULT);
     _gpu_processor = _processor->getDefaultGPUProcessor();
     
     _action = OCIO_ACTION_CONVERT;
@@ -628,7 +637,7 @@ void OpenColorIO_AE_Context::setupDisplay(const char *input, const char *device,
 
     _processor = _config->getProcessor(transform);
     
-    _cpu_processor = _processor->getDefaultCPUProcessor();
+    _cpu_processor = _processor->getOptimizedCPUProcessor(_bit_depth, _bit_depth, OCIO::OPTIMIZATION_DEFAULT, OCIO::FINALIZATION_DEFAULT);
     _gpu_processor = _processor->getDefaultGPUProcessor();
     
     _action = OCIO_ACTION_DISPLAY;
@@ -656,12 +665,12 @@ void OpenColorIO_AE_Context::setupLUT(OCIO_Invert invert, OCIO_Interp interpolat
     
     if(invert == OCIO_INVERT_EXACT)
     {
-        _cpu_processor = _processor->getOptimizedCPUProcessor(OCIO::OPTIMIZATION_DEFAULT, OCIO::FINALIZATION_EXACT);
+        _cpu_processor = _processor->getOptimizedCPUProcessor(_bit_depth, _bit_depth, OCIO::OPTIMIZATION_DEFAULT, OCIO::FINALIZATION_EXACT);
         _gpu_processor = _processor->getOptimizedGPUProcessor(OCIO::OPTIMIZATION_DEFAULT, OCIO::FINALIZATION_EXACT);
     }
     else
     {
-        _cpu_processor = _processor->getDefaultCPUProcessor();
+        _cpu_processor = _processor->getOptimizedCPUProcessor(_bit_depth, _bit_depth, OCIO::OPTIMIZATION_DEFAULT, OCIO::FINALIZATION_DEFAULT);
         _gpu_processor = _processor->getDefaultGPUProcessor();
     }
 

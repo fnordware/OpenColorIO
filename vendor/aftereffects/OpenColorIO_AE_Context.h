@@ -55,7 +55,7 @@ class OpenColorIO_AE_Context
     OpenColorIO_AE_Context(const ArbitraryData *arb_data, const std::string &dir);
     ~OpenColorIO_AE_Context();
     
-    bool Verify(const ArbitraryData *arb_data, const std::string &dir);
+    bool Verify(const ArbitraryData *arb_data, const std::string &dir, OCIO::BitDepth bit_depth = OCIO::BIT_DEPTH_UNKNOWN);
     
     void setupConvert(const char *input, const char *output);
     void setupDisplay(const char *input, const char *device, const char *transform);
@@ -104,6 +104,7 @@ class OpenColorIO_AE_Context
     OCIO_Invert _invert;
     OCIO_Interp _interpolation;
     
+    OCIO::BitDepth _bit_depth;
     
     OCIO::ConstConfigRcPtr      _config;
     OCIO::ConstProcessorRcPtr   _processor;

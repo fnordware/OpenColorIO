@@ -70,7 +70,13 @@ static PF_Err GlobalSetup(
             
             pfS->AddSupportedPixelFormat(in_data->effect_ref,
                                             PrPixelFormat_BGRA_4444_32f);
-            
+
+            pfS->AddSupportedPixelFormat(in_data->effect_ref,
+                                            PrPixelFormat_BGRA_4444_16u);
+
+            pfS->AddSupportedPixelFormat(in_data->effect_ref,
+                                            PrPixelFormat_BGRA_4444_8u);
+
             in_data->pica_basicP->ReleaseSuite(kPFPixelFormatSuite,
                                                 kPFPixelFormatSuiteVersion1);
         }
@@ -357,7 +363,7 @@ typedef struct {
     void *out_buffer;
     A_long out_rowbytes;
     int width;
-} IterateData;
+} CopyData;
 
 template <typename InFormat, typename OutFormat>
 static PF_Err CopyWorld_Iterate(
@@ -368,7 +374,7 @@ static PF_Err CopyWorld_Iterate(
 {
     PF_Err err = PF_Err_NONE;
     
-    IterateData *i_data = (IterateData *)refconPV;
+    CopyData *i_data = (CopyData *)refconPV;
     PF_InData *in_data = i_data->in_data;
     
     InFormat *in_pix = (InFormat *)((char *)i_data->in_buffer + (i * i_data->in_rowbytes)); 
@@ -476,6 +482,144 @@ static PF_Err Process_Iterate(
 }
 
 
+template <typename CHAN_TYPE>
+static void PromoteLine(CHAN_TYPE *pix, int len);
+
+template <>
+static void PromoteLine<A_FpShort>(A_FpShort *pix, int len)
+{
+
+}
+
+template <>
+static void PromoteLine<A_u_short>(A_u_short *pix, int len)
+{
+    while(len--)
+    {
+        *pix = (*pix > PF_HALF_CHAN16 ? (((*pix - 1) << 1) + 1) : (*pix << 1));
+        pix++;
+    }
+}
+
+template <>
+static void PromoteLine<A_u_char>(A_u_char *pix, int len)
+{
+
+}
+
+
+template <typename CHAN_TYPE>
+static void DemoteLine(CHAN_TYPE *pix, int len);
+
+template <>
+static void DemoteLine<A_FpShort>(A_FpShort *pix, int len)
+{
+
+}
+
+template <>
+static void DemoteLine<A_u_short>(A_u_short *pix, int len)
+{
+    while(len--)
+    {
+        *pix = (*pix > PF_MAX_CHAN16 ? ((*pix - 1) >> 1) : (*pix >> 1));
+        pix++;
+    }
+}
+
+template <>
+static void DemoteLine<A_u_char>(A_u_char *pix, int len)
+{
+
+}
+
+typedef struct {
+    PF_InData *in_data;
+    void *in_buffer;
+    A_long in_rowbytes;
+    int width;
+    bool promote;
+} PromoteData;
+
+static PF_Err Promote_Iterate(
+    void *refconPV,
+    A_long thread_indexL,
+    A_long i,
+    A_long iterationsL)
+{
+    PF_Err err = PF_Err_NONE;
+    
+    PromoteData *i_data = (PromoteData *)refconPV;
+    PF_InData *in_data = i_data->in_data;
+    
+    PF_Pixel16 *pix = (PF_Pixel16 *)((char *)i_data->in_buffer + (i * i_data->in_rowbytes));
+    
+#ifdef NDEBUG
+    if(thread_indexL == 0)
+        err = PF_ABORT(in_data);
+#endif
+    
+    if(i_data->promote)
+        PromoteLine<A_u_short>((A_u_short *)pix, i_data->width * 4);
+    else
+        DemoteLine<A_u_short>((A_u_short *)pix, i_data->width * 4);
+    
+    return err;
+}
+
+
+typedef struct {
+    PF_InData               *in_data;
+    void                    *buffer;
+    A_long                  rowbytes;
+    int                     width;
+    OCIO::ChannelOrdering   channel_ordering;
+    OCIO::BitDepth          bit_depth;
+    OpenColorIO_AE_Context  *context;
+} Process2Data;
+
+template <typename PIX_TYPE, typename CHAN_TYPE>
+static PF_Err Process2_Iterate(
+    void *refconPV,
+    A_long thread_indexL,
+    A_long i,
+    A_long iterationsL)
+{
+    PF_Err err = PF_Err_NONE;
+    
+    Process2Data *i_data = (Process2Data *)refconPV;
+    PF_InData *in_data = i_data->in_data;
+    
+    PIX_TYPE *pix = (PIX_TYPE *)((char *)i_data->buffer + (i * i_data->rowbytes));
+    
+#ifdef NDEBUG
+    if(thread_indexL == 0)
+        err = PF_ABORT(in_data);
+#endif
+
+    try
+    {
+        PromoteLine<CHAN_TYPE>((CHAN_TYPE *)pix, i_data->width * 4); // for AE 16-bit only
+        
+        void *out = (i_data->channel_ordering == OCIO::CHANNEL_ORDERING_ABGR ? &pix->alpha : &pix->red);
+
+        OCIO::PackedImageDesc img(out, i_data->width, 1,
+                                    i_data->channel_ordering, i_data->bit_depth,
+                                    sizeof(CHAN_TYPE), sizeof(PIX_TYPE), i_data->rowbytes);
+
+        i_data->context->cpu_processor()->apply(img);
+        
+        DemoteLine<CHAN_TYPE>((CHAN_TYPE *)pix, i_data->width * 4);
+    }
+    catch(...)
+    {
+        err = PF_Err_INTERNAL_STRUCT_DAMAGED;
+    }
+    
+    return err;
+}
+
+
 // two functions below to get Premiere to run my functions multi-threaded
 // because they couldn't bother to give me PF_Iterate8Suite1->iterate_generic
 
@@ -577,12 +721,12 @@ static PF_Err DoRender(
         ArbitraryData *arb_data = (ArbitraryData *)PF_LOCK_HANDLE(OCIO_data->u.arb_d.value);
         SequenceData *seq_data = (SequenceData *)PF_LOCK_HANDLE(in_data->sequence_data);
         
+        const std::string dir = GetProjectDir(in_data);
+
         try
         {
             seq_data->status = STATUS_OK;
         
-            std::string dir = GetProjectDir(in_data);
-
             // must always verify that our context lines up with the parameters
             // things like undo can change them without notice
             if(seq_data->context != NULL)
@@ -705,167 +849,604 @@ static PF_Err DoRender(
                 if(iterate_generic == NULL)
                     iterate_generic = MyGenericIterateFunc; // thanks a lot, Premiere
             
-                // OpenColorIO only does float worlds
-                // might have to create one
-                PF_EffectWorld *float_world = NULL;
-                
-                PF_EffectWorld temp_world_data;
-                PF_EffectWorld *temp_world = NULL;
-                PF_Handle temp_worldH = NULL;
-                
-                
-                PF_PixelFormat format;
-                wsP->PF_GetPixelFormat(output, &format);
-                
-                if(in_data->appl_id == 'PrMr' && pfS)
+                if(true)
                 {
-                    // the regular world suite function will give a bogus value for Premiere
-                    pfS->GetPixelFormat(output, (PrPixelFormat *)&format);
+                    // OpenColorIO only does float worlds
+                    // might have to create one
+                    PF_EffectWorld *float_world = NULL;
                     
-                    seq_data->prem_status = (format == PrPixelFormat_BGRA_4444_32f_Linear ?
-                                                PREMIERE_LINEAR : PREMIERE_NON_LINEAR);
-                }
-                
-                
-                A_Boolean use_gpu = OCIO_gpu->u.bd.value;
-                seq_data->gpu_err = GPU_ERR_NONE;
-                A_long non_padded_rowbytes = sizeof(PF_PixelFloat) * output->width;
-                
-
-                if(format == PF_PixelFormat_ARGB128 &&
-                    (!use_gpu || output->rowbytes == non_padded_rowbytes)) // GPU doesn't do padding
-                {
-                    err = PF_COPY(input, output, NULL, NULL);
+                    PF_EffectWorld temp_world_data;
+                    PF_EffectWorld *temp_world = NULL;
+                    PF_Handle temp_worldH = NULL;
                     
-                    float_world = output;
-                }
-                else
-                {
-                    temp_worldH = PF_NEW_HANDLE(non_padded_rowbytes * (output->height + 1)); // little extra because we go over by a channel
                     
-                    if(temp_worldH)
+                    PF_PixelFormat format;
+                    wsP->PF_GetPixelFormat(output, &format);
+                    
+                    if(in_data->appl_id == 'PrMr' && pfS)
                     {
-                        temp_world_data.data = (PF_PixelPtr)PF_LOCK_HANDLE(temp_worldH);
+                        // the regular world suite function will give a bogus value for Premiere
+                        pfS->GetPixelFormat(output, (PrPixelFormat *)&format);
                         
-                        temp_world_data.width = output->width;
-                        temp_world_data.height = output->height;
-                        temp_world_data.rowbytes = non_padded_rowbytes;
-                        
-                        float_world = temp_world = &temp_world_data;
+                        seq_data->prem_status = (format == PrPixelFormat_BGRA_4444_32f_Linear ?
+                                                    PREMIERE_LINEAR : PREMIERE_NON_LINEAR);
+                    }
+                    
+                    
+                    const A_Boolean use_gpu = OCIO_gpu->u.bd.value;
+                    seq_data->gpu_err = GPU_ERR_NONE;
+                    const A_long non_padded_rowbytes = sizeof(PF_PixelFloat) * output->width;
+                    
 
-                        // convert to new temp float world
-                        IterateData i_data = { in_data, input->data, input->rowbytes,
+                    if(format == PF_PixelFormat_ARGB128 &&
+                        (!use_gpu || output->rowbytes == non_padded_rowbytes)) // GPU doesn't do padding
+                    {
+                        err = PF_COPY(input, output, NULL, NULL);
+                        
+                        float_world = output;
+                    }
+                    else
+                    {
+                        temp_worldH = PF_NEW_HANDLE(non_padded_rowbytes * (output->height + 1)); // little extra because we go over by a channel
+                        
+                        if(temp_worldH)
+                        {
+                            temp_world_data.data = (PF_PixelPtr)PF_LOCK_HANDLE(temp_worldH);
+                            
+                            temp_world_data.width = output->width;
+                            temp_world_data.height = output->height;
+                            temp_world_data.rowbytes = non_padded_rowbytes;
+                            
+                            float_world = temp_world = &temp_world_data;
+
+                            // convert to new temp float world
+                            CopyData i_data = { in_data, input->data, input->rowbytes,
                                                 float_world->data, float_world->rowbytes,
                                                 float_world->width * 4 };
+                            
+                            if(format == PF_PixelFormat_ARGB32 || format == PrPixelFormat_BGRA_4444_8u)
+                            {
+                                err = iterate_generic(float_world->height, &i_data,
+                                                        CopyWorld_Iterate<A_u_char, float>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB64)
+                            {
+                                err = iterate_generic(float_world->height, &i_data,
+                                                        CopyWorld_Iterate<A_u_short, float>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB128 ||
+                                    format == PrPixelFormat_BGRA_4444_32f ||
+                                    format == PrPixelFormat_BGRA_4444_32f_Linear)
+                            {
+                                err = iterate_generic(float_world->height, &i_data,
+                                                        CopyWorld_Iterate<float, float>);
+                            }
+                            
+                            // switch BGRA to ARGB for premiere
+                            if(!err &&
+                                (format == PrPixelFormat_BGRA_4444_8u ||
+                                format == PrPixelFormat_BGRA_4444_32f_Linear ||
+                                format == PrPixelFormat_BGRA_4444_32f))
+                            {
+                                SwapData s_data = { in_data, float_world->data,
+                                                float_world->rowbytes, float_world->width };
+                                
+                                err = iterate_generic(float_world->height, &s_data,
+                                                        Swap_Iterate);
+                            }
+                        }
+                        else
+                            err = PF_Err_OUT_OF_MEMORY;
+                    }
+                    
+                    
+                    if(!err)
+                    {
+                        bool gpu_rendered = false;
+
+                        // OpenColorIO processing
+                        if(use_gpu)
+                        {
+                            if( HaveOpenGL() )
+                            {
+                                gpu_rendered = seq_data->context->ProcessWorldGL(float_world);
+                                
+                                if(!gpu_rendered)
+                                    seq_data->gpu_err = GPU_ERR_RENDER_ERR;
+                            }
+                            else
+                                seq_data->gpu_err = GPU_ERR_INSUFFICIENT;
+                        }
                         
-                        if(format == PF_PixelFormat_ARGB32 || format == PrPixelFormat_BGRA_4444_8u)
+                        if(!gpu_rendered)
                         {
-                            err = iterate_generic(float_world->height, &i_data,
-                                                    CopyWorld_Iterate<A_u_char, float>);
+                            ProcessData p_data = { in_data,
+                                                    float_world->data,
+                                                    float_world->rowbytes,
+                                                    float_world->width,
+                                                    seq_data->context };
+
+                            err = iterate_generic(float_world->height, &p_data, Process_Iterate);
                         }
-                        else if(format == PF_PixelFormat_ARGB64)
-                        {
-                            err = iterate_generic(float_world->height, &i_data,
-                                                    CopyWorld_Iterate<A_u_short, float>);
-                        }
-                        else if(format == PF_PixelFormat_ARGB128 ||
-                                format == PrPixelFormat_BGRA_4444_32f ||
-                                format == PrPixelFormat_BGRA_4444_32f_Linear)
-                        {
-                            err = iterate_generic(float_world->height, &i_data,
-                                                    CopyWorld_Iterate<float, float>);
-                        }
-                        
-                        // switch BGRA to ARGB for premiere
+                    }
+                    
+                    
+                    // copy back to non-float world and dispose
+                    if(temp_world)
+                    {
                         if(!err &&
                             (format == PrPixelFormat_BGRA_4444_8u ||
                             format == PrPixelFormat_BGRA_4444_32f_Linear ||
                             format == PrPixelFormat_BGRA_4444_32f))
                         {
                             SwapData s_data = { in_data, float_world->data,
-                                            float_world->rowbytes, float_world->width };
+                                                float_world->rowbytes, float_world->width };
                             
-                            err = iterate_generic(float_world->height, &s_data,
-                                                    Swap_Iterate);
+                            err = iterate_generic(float_world->height, &s_data, Swap_Iterate);
                         }
+                        
+                        if(!err)
+                        {
+                            CopyData i_data = { in_data, float_world->data,
+                                                float_world->rowbytes, output->data,
+                                                output->rowbytes, output->width * 4 };
+                            
+                            if(format == PF_PixelFormat_ARGB32 || format == PrPixelFormat_BGRA_4444_8u)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, A_u_char>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB64)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, A_u_short>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB128 ||
+                                    format == PrPixelFormat_BGRA_4444_32f ||
+                                    format == PrPixelFormat_BGRA_4444_32f_Linear)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, float>);
+                            }
+                            
+                        }
+
+                        PF_DISPOSE_HANDLE(temp_worldH);
+                    }
+                }
+                else if(true)
+                {
+                    // option 2: keep the iterating thing, but let CPU OCIO process non-float pixels
+                    
+                    PF_EffectWorld *ocio_world = NULL;
+                    PF_PixelFormat ocio_format = PF_PixelFormat_INVALID;
+                    
+                    PF_EffectWorld temp_world_data;
+                    PF_EffectWorld *temp_world = NULL;
+                    PF_Handle temp_worldH = NULL;
+                    
+                    PF_PixelFormat format;
+                    wsP->PF_GetPixelFormat(output, &format);
+                    
+                    if(in_data->appl_id == 'PrMr' && pfS)
+                    {
+                        // the regular world suite function will give a bogus value for Premiere
+                        pfS->GetPixelFormat(output, (PrPixelFormat *)&format);
+                        
+                        seq_data->prem_status = (format == PrPixelFormat_BGRA_4444_32f_Linear ?
+                                                    PREMIERE_LINEAR : PREMIERE_NON_LINEAR);
+                    }
+
+                    
+                    const A_Boolean use_gpu = OCIO_gpu->u.bd.value;
+                    seq_data->gpu_err = GPU_ERR_NONE;
+                    const A_long non_padded_gpu_rowbytes = sizeof(PF_PixelFloat) * output->width;
+                    
+
+                    if(!use_gpu || output->rowbytes == non_padded_gpu_rowbytes) // GPU doesn't do padding
+                    {
+                        err = PF_COPY(input, output, NULL, NULL);
+                        
+                        ocio_world = output;
+                        
+                        ocio_format = format;
                     }
                     else
-                        err = PF_Err_OUT_OF_MEMORY;
-                }
-                
-                
-                if(!err)
-                {
-                    bool gpu_rendered = false;
-
-                    // OpenColorIO processing
-                    if(use_gpu)
                     {
-                        if( HaveOpenGL() )
+                        temp_worldH = PF_NEW_HANDLE(non_padded_gpu_rowbytes * (output->height + 1)); // little extra because we go over by a channel
+                        
+                        if(temp_worldH)
                         {
-                            gpu_rendered = seq_data->context->ProcessWorldGL(float_world);
+                            temp_world_data.data = (PF_PixelPtr)PF_LOCK_HANDLE(temp_worldH);
                             
-                            if(!gpu_rendered)
-                                seq_data->gpu_err = GPU_ERR_RENDER_ERR;
+                            temp_world_data.width = output->width;
+                            temp_world_data.height = output->height;
+                            temp_world_data.rowbytes = non_padded_gpu_rowbytes;
+                            
+                            ocio_world = temp_world = &temp_world_data;
+                            
+                            ocio_format = PF_PixelFormat_ARGB128;
+
+                            // convert to new temp float world
+                            CopyData i_data = { in_data, input->data, input->rowbytes,
+                                                ocio_world->data, ocio_world->rowbytes,
+                                                ocio_world->width * 4 };
+                            
+                            if(format == PF_PixelFormat_ARGB32 || format == PrPixelFormat_BGRA_4444_8u)
+                            {
+                                err = iterate_generic(ocio_world->height, &i_data,
+                                                        CopyWorld_Iterate<A_u_char, float>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB64 || format == PrPixelFormat_BGRA_4444_16u)
+                            {
+                                err = iterate_generic(ocio_world->height, &i_data,
+                                                        CopyWorld_Iterate<A_u_short, float>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB128 ||
+                                    format == PrPixelFormat_BGRA_4444_32f ||
+                                    format == PrPixelFormat_BGRA_4444_32f_Linear)
+                            {
+                                err = iterate_generic(ocio_world->height, &i_data,
+                                                        CopyWorld_Iterate<float, float>);
+                            }
+                            
+                            // switch BGRA to ARGB for premiere
+                            if(!err &&
+                                (format == PrPixelFormat_BGRA_4444_8u ||
+                                format == PrPixelFormat_BGRA_4444_16u ||
+                                format == PrPixelFormat_BGRA_4444_32f_Linear ||
+                                format == PrPixelFormat_BGRA_4444_32f))
+                            {
+                                SwapData s_data = { in_data, ocio_world->data,
+                                                ocio_world->rowbytes, ocio_world->width };
+                                
+                                err = iterate_generic(ocio_world->height, &s_data,
+                                                        Swap_Iterate);
+                            }
                         }
                         else
-                            seq_data->gpu_err = GPU_ERR_INSUFFICIENT;
-                    }
-                    
-                    if(!gpu_rendered)
-                    {
-                        ProcessData p_data = { in_data,
-                                                float_world->data,
-                                                float_world->rowbytes,
-                                                float_world->width,
-                                                seq_data->context };
-
-                        err = iterate_generic(float_world->height, &p_data, Process_Iterate);
-                    }
-                }
-                
-                
-                // copy back to non-float world and dispose
-                if(temp_world)
-                {
-                    if(!err &&
-                        (format == PrPixelFormat_BGRA_4444_8u ||
-                        format == PrPixelFormat_BGRA_4444_32f_Linear ||
-                        format == PrPixelFormat_BGRA_4444_32f))
-                    {
-                        SwapData s_data = { in_data, float_world->data,
-                                            float_world->rowbytes, float_world->width };
-                        
-                        err = iterate_generic(float_world->height, &s_data, Swap_Iterate);
+                            err = PF_Err_OUT_OF_MEMORY;
                     }
                     
                     if(!err)
                     {
-                        IterateData i_data = { in_data, float_world->data,
-                                                float_world->rowbytes, output->data,
-                                                output->rowbytes, output->width * 4 };
+                        bool gpu_rendered = false;
+
+                        // OpenColorIO processing
+                        if(use_gpu)
+                        {
+                            if( HaveOpenGL() )
+                            {
+                                assert(ocio_format == PF_PixelFormat_ARGB128);
+                                
+                                gpu_rendered = seq_data->context->ProcessWorldGL(ocio_world);
+                                
+                                if(!gpu_rendered)
+                                    seq_data->gpu_err = GPU_ERR_RENDER_ERR;
+                            }
+                            else
+                                seq_data->gpu_err = GPU_ERR_INSUFFICIENT;
+                        }
                         
-                        if(format == PF_PixelFormat_ARGB32 || format == PrPixelFormat_BGRA_4444_8u)
+                        if(!gpu_rendered)
                         {
-                            err = iterate_generic(output->height, &i_data,
-                                                    CopyWorld_Iterate<float, A_u_char>);
-                        }
-                        else if(format == PF_PixelFormat_ARGB64)
-                        {
-                            err = iterate_generic(output->height, &i_data,
-                                                    CopyWorld_Iterate<float, A_u_short>);
-                        }
-                        else if(format == PF_PixelFormat_ARGB128 ||
-                                format == PrPixelFormat_BGRA_4444_32f ||
-                                format == PrPixelFormat_BGRA_4444_32f_Linear)
-                        {
-                            err = iterate_generic(output->height, &i_data,
-                                                    CopyWorld_Iterate<float, float>);
-                        }
+                            const bool premiere_buffer = (ocio_format == PrPixelFormat_BGRA_4444_8u ||
+                                                            ocio_format == PrPixelFormat_BGRA_4444_16u ||
+                                                            ocio_format == PrPixelFormat_BGRA_4444_32f_Linear ||
+                                                            ocio_format == PrPixelFormat_BGRA_4444_32f);
+                                                          
+                            const OCIO::ChannelOrdering channel_ordering = (premiere_buffer ?
+                                                                                OCIO::CHANNEL_ORDERING_BGRA :
+                                                                                OCIO::CHANNEL_ORDERING_RGBA);
                             
+                            const OCIO::BitDepth bit_depth = (ocio_format == PF_PixelFormat_ARGB32 ? OCIO::BIT_DEPTH_UINT8 :
+                                                                ocio_format == PF_PixelFormat_ARGB64 ? OCIO::BIT_DEPTH_UINT16 :
+                                                                ocio_format == PF_PixelFormat_ARGB128 ? OCIO::BIT_DEPTH_F32 :
+                                                                ocio_format == PrPixelFormat_BGRA_4444_8u ? OCIO::BIT_DEPTH_UINT8 :
+                                                                ocio_format == PrPixelFormat_BGRA_4444_16u ? OCIO::BIT_DEPTH_UINT16 :
+                                                                ocio_format == PrPixelFormat_BGRA_4444_32f_Linear ? OCIO::BIT_DEPTH_F32 :
+                                                                ocio_format == PrPixelFormat_BGRA_4444_32f ? OCIO::BIT_DEPTH_F32 :
+                                                                OCIO::BIT_DEPTH_UNKNOWN);
+                            
+                            // this is where I set the bit depth, would be better to do it above
+                            const bool verified = seq_data->context->Verify(arb_data, dir, bit_depth);
+                            
+                            assert(verified);
+                            
+                            
+                            Process2Data p_data = { in_data,
+                                                    ocio_world->data,
+                                                    ocio_world->rowbytes,
+                                                    ocio_world->width,
+                                                    channel_ordering,
+                                                    bit_depth,
+                                                    seq_data->context };
+                            
+                            if(bit_depth == OCIO::BIT_DEPTH_UINT8)
+                                err = iterate_generic(ocio_world->height, &p_data, Process2_Iterate<PF_Pixel, A_u_char>);
+                            else if(bit_depth == OCIO::BIT_DEPTH_UINT16)
+                                err = iterate_generic(ocio_world->height, &p_data, Process2_Iterate<PF_Pixel16, A_u_short>);
+                            else if(bit_depth == OCIO::BIT_DEPTH_F32)
+                                err = iterate_generic(ocio_world->height, &p_data, Process2_Iterate<PF_Pixel32, A_FpShort>);
+                        }
+                    }
+                    
+                    // copy back to non-float world and dispose
+                    if(temp_world)
+                    {
+                        if(!err &&
+                            (format == PrPixelFormat_BGRA_4444_8u ||
+                            format == PrPixelFormat_BGRA_4444_32f_Linear ||
+                            format == PrPixelFormat_BGRA_4444_32f))
+                        {
+                            SwapData s_data = { in_data, ocio_world->data,
+                                                ocio_world->rowbytes, ocio_world->width };
+                            
+                            err = iterate_generic(ocio_world->height, &s_data, Swap_Iterate);
+                        }
+                        
+                        if(!err)
+                        {
+                            CopyData i_data = { in_data, ocio_world->data,
+                                                ocio_world->rowbytes, output->data,
+                                                output->rowbytes, output->width * 4 };
+                            
+                            if(format == PF_PixelFormat_ARGB32 || format == PrPixelFormat_BGRA_4444_8u)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, A_u_char>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB64)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, A_u_short>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB128 ||
+                                    format == PrPixelFormat_BGRA_4444_32f ||
+                                    format == PrPixelFormat_BGRA_4444_32f_Linear)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, float>);
+                            }
+                            
+                        }
+
+                        PF_DISPOSE_HANDLE(temp_worldH);
+                    }
+                }
+                else
+                {
+                    // option 3: let OCIO do all the iteration
+                    
+                    PF_EffectWorld *ocio_world = NULL;
+                    PF_PixelFormat ocio_format = PF_PixelFormat_INVALID;
+                    
+                    PF_EffectWorld temp_world_data;
+                    PF_EffectWorld *temp_world = NULL;
+                    PF_Handle temp_worldH = NULL;
+                    
+                    PF_PixelFormat format;
+                    wsP->PF_GetPixelFormat(output, &format);
+                    
+                    if(in_data->appl_id == 'PrMr' && pfS)
+                    {
+                        // the regular world suite function will give a bogus value for Premiere
+                        pfS->GetPixelFormat(output, (PrPixelFormat *)&format);
+                        
+                        seq_data->prem_status = (format == PrPixelFormat_BGRA_4444_32f_Linear ?
+                                                    PREMIERE_LINEAR : PREMIERE_NON_LINEAR);
                     }
 
-                    PF_DISPOSE_HANDLE(temp_worldH);
+                    
+                    const A_Boolean use_gpu = OCIO_gpu->u.bd.value;
+                    seq_data->gpu_err = GPU_ERR_NONE;
+                    const A_long non_padded_gpu_rowbytes = sizeof(PF_PixelFloat) * output->width;
+                    
+
+                    if(!use_gpu || output->rowbytes == non_padded_gpu_rowbytes) // GPU doesn't do padding
+                    {
+                        err = PF_COPY(input, output, NULL, NULL);
+                        
+                        ocio_world = output;
+                        
+                        ocio_format = format;
+                    }
+                    else
+                    {
+                        temp_worldH = PF_NEW_HANDLE(non_padded_gpu_rowbytes * (output->height + 1)); // little extra because we go over by a channel
+                        
+                        if(temp_worldH)
+                        {
+                            temp_world_data.data = (PF_PixelPtr)PF_LOCK_HANDLE(temp_worldH);
+                            
+                            temp_world_data.width = output->width;
+                            temp_world_data.height = output->height;
+                            temp_world_data.rowbytes = non_padded_gpu_rowbytes;
+                            
+                            ocio_world = temp_world = &temp_world_data;
+                            
+                            ocio_format = PF_PixelFormat_ARGB128;
+
+                            // convert to new temp float world
+                            CopyData i_data = { in_data, input->data, input->rowbytes,
+                                                ocio_world->data, ocio_world->rowbytes,
+                                                ocio_world->width * 4 };
+                            
+                            if(format == PF_PixelFormat_ARGB32 || format == PrPixelFormat_BGRA_4444_8u)
+                            {
+                                err = iterate_generic(ocio_world->height, &i_data,
+                                                        CopyWorld_Iterate<A_u_char, float>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB64 || format == PrPixelFormat_BGRA_4444_16u)
+                            {
+                                err = iterate_generic(ocio_world->height, &i_data,
+                                                        CopyWorld_Iterate<A_u_short, float>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB128 ||
+                                    format == PrPixelFormat_BGRA_4444_32f ||
+                                    format == PrPixelFormat_BGRA_4444_32f_Linear)
+                            {
+                                err = iterate_generic(ocio_world->height, &i_data,
+                                                        CopyWorld_Iterate<float, float>);
+                            }
+                            
+                            // switch BGRA to ARGB for premiere
+                            if(!err &&
+                                (format == PrPixelFormat_BGRA_4444_8u ||
+                                format == PrPixelFormat_BGRA_4444_16u ||
+                                format == PrPixelFormat_BGRA_4444_32f_Linear ||
+                                format == PrPixelFormat_BGRA_4444_32f))
+                            {
+                                SwapData s_data = { in_data, ocio_world->data,
+                                                ocio_world->rowbytes, ocio_world->width };
+                                
+                                err = iterate_generic(ocio_world->height, &s_data,
+                                                        Swap_Iterate);
+                            }
+                        }
+                        else
+                            err = PF_Err_OUT_OF_MEMORY;
+                    }
+                    
+                    
+                    bool gpu_rendered = false;
+                    
+                    if(!err)
+                    {
+                        // OpenColorIO processing
+                        if(use_gpu)
+                        {
+                            if( HaveOpenGL() )
+                            {
+                                assert(ocio_format == PF_PixelFormat_ARGB128);
+                                
+                                gpu_rendered = seq_data->context->ProcessWorldGL(ocio_world);
+                                
+                                if(!gpu_rendered)
+                                    seq_data->gpu_err = GPU_ERR_RENDER_ERR;
+                            }
+                            else
+                                seq_data->gpu_err = GPU_ERR_INSUFFICIENT;
+                        }
+                        
+                        if(!gpu_rendered)
+                        {
+                            const bool premiere_buffer = (ocio_format == PrPixelFormat_BGRA_4444_8u ||
+                                                            ocio_format == PrPixelFormat_BGRA_4444_16u ||
+                                                            ocio_format == PrPixelFormat_BGRA_4444_32f_Linear ||
+                                                            ocio_format == PrPixelFormat_BGRA_4444_32f);
+                            
+                            const OCIO::ChannelOrdering channel_ordering = (premiere_buffer ?
+                                                                                OCIO::CHANNEL_ORDERING_BGRA :
+                                                                                OCIO::CHANNEL_ORDERING_RGBA);
+                            
+                            const OCIO::BitDepth bit_depth = (ocio_format == PF_PixelFormat_ARGB32 ? OCIO::BIT_DEPTH_UINT8 :
+                                                                ocio_format == PF_PixelFormat_ARGB64 ? OCIO::BIT_DEPTH_UINT16 :
+                                                                ocio_format == PF_PixelFormat_ARGB128 ? OCIO::BIT_DEPTH_F32 :
+                                                                ocio_format == PrPixelFormat_BGRA_4444_8u ? OCIO::BIT_DEPTH_UINT8 :
+                                                                ocio_format == PrPixelFormat_BGRA_4444_16u ? OCIO::BIT_DEPTH_UINT16 :
+                                                                ocio_format == PrPixelFormat_BGRA_4444_32f_Linear ? OCIO::BIT_DEPTH_F32 :
+                                                                ocio_format == PrPixelFormat_BGRA_4444_32f ? OCIO::BIT_DEPTH_F32 :
+                                                                OCIO::BIT_DEPTH_UNKNOWN);
+                            
+                            // this is where I set the bit depth, would be better to do it above
+                            const bool verified = seq_data->context->Verify(arb_data, dir, bit_depth);
+                            
+                            assert(verified);
+                            
+                            if(bit_depth == OCIO::BIT_DEPTH_UINT16)
+                            {
+                                PromoteData p_data = {in_data, ocio_world->data, ocio_world->rowbytes, ocio_world->width, true};
+                                
+                                err = iterate_generic(ocio_world->height, &p_data, Promote_Iterate);
+                            }
+                            
+                            try
+                            {
+                                void *out = NULL;
+                                ptrdiff_t chan_bytes = 0;
+                                
+                                if(bit_depth == OCIO::BIT_DEPTH_UINT8)
+                                {
+                                    chan_bytes = sizeof(A_u_char);
+                                    A_u_char *buf = (A_u_char *)ocio_world->data;
+                                    out = (premiere_buffer ? &buf[0] : &buf[1]);
+                                }
+                                else if(bit_depth == OCIO::BIT_DEPTH_UINT16)
+                                {
+                                    chan_bytes = sizeof(A_u_short);
+                                    A_u_short *buf = (A_u_short *)ocio_world->data;
+                                    out = (premiere_buffer ? &buf[0] : &buf[1]);
+                                }
+                                else
+                                {
+                                    chan_bytes = sizeof(A_FpShort);
+                                    A_FpShort *buf = (A_FpShort *)ocio_world->data;
+                                    out = (premiere_buffer ? &buf[0] : &buf[1]);
+                                }
+
+                                OCIO::PackedImageDesc img(out, ocio_world->width, ocio_world->height,
+                                                            channel_ordering, bit_depth,
+                                                            chan_bytes, chan_bytes * 4, ocio_world->rowbytes);
+
+                                seq_data->context->cpu_processor()->apply(img);
+                            }
+                            catch(...)
+                            {
+                                err = PF_Err_INTERNAL_STRUCT_DAMAGED;
+                            }
+
+                            if(bit_depth == OCIO::BIT_DEPTH_UINT16)
+                            {
+                                PromoteData p_data = {in_data, ocio_world->data, ocio_world->rowbytes, ocio_world->width, false};
+                                
+                                err = iterate_generic(ocio_world->height, &p_data, Promote_Iterate);
+                            }
+                        }
+                    }
+                    
+                    // copy back to non-float world and dispose
+                    if(temp_world)
+                    {
+                        if(!err && gpu_rendered &&
+                            (format == PrPixelFormat_BGRA_4444_8u ||
+                            format == PrPixelFormat_BGRA_4444_32f_Linear ||
+                            format == PrPixelFormat_BGRA_4444_32f))
+                        {
+                            SwapData s_data = { in_data, ocio_world->data,
+                                                ocio_world->rowbytes, ocio_world->width };
+                            
+                            err = iterate_generic(ocio_world->height, &s_data, Swap_Iterate);
+                        }
+                        
+                        if(!err && gpu_rendered)
+                        {
+                            CopyData i_data = { in_data, ocio_world->data,
+                                                ocio_world->rowbytes, output->data,
+                                                output->rowbytes, output->width * 4 };
+                            
+                            if(format == PF_PixelFormat_ARGB32 || format == PrPixelFormat_BGRA_4444_8u)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, A_u_char>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB64)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, A_u_short>);
+                            }
+                            else if(format == PF_PixelFormat_ARGB128 ||
+                                    format == PrPixelFormat_BGRA_4444_32f ||
+                                    format == PrPixelFormat_BGRA_4444_32f_Linear)
+                            {
+                                err = iterate_generic(output->height, &i_data,
+                                                        CopyWorld_Iterate<float, float>);
+                            }
+                            
+                        }
+
+                        PF_DISPOSE_HANDLE(temp_worldH);
+                    }
                 }
                     
                     
