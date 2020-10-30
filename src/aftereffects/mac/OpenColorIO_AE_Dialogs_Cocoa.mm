@@ -141,7 +141,7 @@ bool GetMonitorProfile(char *path, int buf_len, const void *hwnd)
                 hit_ok = true;
             }
             
-            [my_window release];
+            [my_window close];
         }
         
         [ui_controller release];
